@@ -4,6 +4,7 @@
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/date.test.iml" filepath="$PROJECT_DIR$/.idea/modules/date.test.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/excel.test.iml" filepath="$PROJECT_DIR$/.idea/modules/excel.test.iml" />
+      <module fileurl="file://$PROJECT_DIR$/mcp-servers.iml" filepath="$PROJECT_DIR$/mcp-servers.iml" />
     </modules>
   </component>
 </project>
