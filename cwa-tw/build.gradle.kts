@@ -21,16 +21,18 @@ dependencies {
     implementation("io.quarkus:quarkus-kotlin")
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
     implementation("io.quarkus:quarkus-arc")
-    implementation("io.quarkus:quarkus-rest-client-jackson")
     implementation("io.quarkiverse.mcp:quarkus-mcp-server-stdio:$mcpServerStdioVersion")
+    implementation("io.quarkus:quarkus-rest-client")
+    implementation("io.quarkus:quarkus-rest-client-jackson")
 
     implementation("com.google.code.gson:gson:$gsonVersion")
+    implementation("org.eclipse.microprofile.rest.client:microprofile-rest-client-api:4.0")
 
     testImplementation("io.quarkus:quarkus-junit5")
     testImplementation("org.mockito:mockito-core:$mockitoCoreVersion")
 }
 
-group = "tw.zipe.mcp.date"
+group = "tw.zipe.mcp.cwa"
 version = "1.0-SNAPSHOT"
 
 java {
