@@ -11,6 +11,19 @@ import org.eclipse.microprofile.rest.client.inject.RegisterRestClient
 interface WeatherClient {
 
     @GET
+    @Path("/v1/rest/datastore/F-D0047-093")
+    fun getTownshipWeatherForecast(
+        @QueryParam("Authorization") authorization: String,
+        @QueryParam("LocationName") locationName: List<String>,
+        @QueryParam("locationId") locationId: String,
+        @QueryParam("timeFrom") timeFrom: String,
+        @QueryParam("timeTo") timeTo: String,
+        @QueryParam("sort") sort: String,
+        @QueryParam("format") format: String,
+        @QueryParam("ElementName") elementName: String
+    ): Map<String, Any>
+
+    @GET
     @Path("/v1/rest/datastore/F-C0032-001")
     fun getWeatherForecast(
         @QueryParam("Authorization") authorization: String,

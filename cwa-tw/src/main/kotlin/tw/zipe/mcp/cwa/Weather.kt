@@ -19,20 +19,92 @@ class Weather(
     private val authKey = System.getenv("AUTH_KEY")
     private val objectMapper = ObjectMapper()
 
-    @Tool(description = "Get 36-hour weather forecast data for a city, locationName is required")
-    fun getWeatherForecast(
-        @ToolArg(description = "City name,For example:花蓮縣、臺東縣") locationName: String,
-        @ToolArg(description = "Forecast factors, options include Wx (weather phenomenon), PoP (precipitation probability), MinT (minimum temperature), MaxT (maximum temperature), CI (comfort index), returns all by default") elementName: List<String>? = null,
-        @ToolArg(description = "Start time of period, format: yyyy-MM-ddThh:mm:ss") timeFrom: String? = null,
-        @ToolArg(description = "End time of period, format: yyyy-MM-ddThh:mm:ss") timeTo: String? = null
+    @Tool(description = "Get API ID corresponding to Taiwan cities/counties")
+    fun getCityWeatherForecastApiId(@ToolArg(description = "City name,For example:花蓮縣、臺東縣") cityName: String): String? {
+        val cityIdMap = mapOf(
+            "臺北市" to "F-D0047-061",
+            "新北市" to "F-D0047-069",
+            "桃園市" to "F-D0047-005",
+            "臺中市" to "F-D0047-073",
+            "臺南市" to "F-D0047-077",
+            "高雄市" to "F-D0047-065",
+            "基隆市" to "F-D0047-049",
+            "新竹縣" to "F-D0047-009",
+            "新竹市" to "F-D0047-053",
+            "苗栗縣" to "F-D0047-013",
+            "彰化縣" to "F-D0047-017",
+            "南投縣" to "F-D0047-021",
+            "雲林縣" to "F-D0047-025",
+            "嘉義縣" to "F-D0047-029",
+            "嘉義市" to "F-D0047-057",
+            "屏東縣" to "F-D0047-033",
+            "宜蘭縣" to "F-D0047-001",
+            "花蓮縣" to "F-D0047-041",
+            "臺東縣" to "F-D0047-039",
+            "澎湖縣" to "F-D0047-045",
+            "金門縣" to "F-D0047-085",
+            "連江縣" to "F-D0047-081"
+        )
+        return cityIdMap[cityName]
+    }
+
+    @Tool(description = "Get weather forecast data for all townships in Taiwan. LocationName is required. TimeFrom must be before TimeTo, and TimeTo cannot exceed TimeFrom by more than 24 hours.")
+    fun getTownshipWeatherForecast(
+        @ToolArg(description = "API ID corresponding to Taiwan county/city") locationId: String,
+        @ToolArg(description = "Township name, e.g., 信義區, 萬華區") locationName: String,
+        @ToolArg(description = "Start time, format: yyyy-MM-ddThh:mm:ss") timeFrom: String? = null,
+        @ToolArg(description = "End time, format: yyyy-MM-ddThh:mm:ss") timeTo: String? = null
     ): JsonNode {
-        val response = weatherClient.getWeatherForecast(
+        val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss")
+        val now = LocalDateTime.now()
+
+        val (startTime, endTime) = when {
+            timeFrom == null && timeTo == null -> {
+                Pair(now.format(formatter), now.plusDays(1).format(formatter))
+            }
+
+            timeFrom != null && timeTo != null -> {
+                val parsedTimeFrom = LocalDateTime.parse(timeFrom, formatter)
+                val parsedTimeTo = LocalDateTime.parse(timeTo, formatter)
+
+                require(!parsedTimeTo.isBefore(parsedTimeFrom)) { "timeTo 不得在 timeFrom 之前" }
+
+                val maxEndTime = parsedTimeFrom.plusHours(24)
+                val actualEndTime = if (parsedTimeTo.isAfter(maxEndTime)) {
+                    maxEndTime.format(formatter)
+                } else {
+                    timeTo
+                }
+
+                Pair(timeFrom, actualEndTime)
+            }
+
+            timeFrom != null -> {
+                val parsedTimeFrom = LocalDateTime.parse(timeFrom, formatter)
+                Pair(timeFrom, parsedTimeFrom.plusHours(24).format(formatter))
+            }
+
+            else -> {
+                throw IllegalArgumentException("如果提供 timeTo，则必须同时提供 timeFrom")
+            }
+        }
+
+        val response = weatherClient.getTownshipWeatherForecast(
             authorization = authKey,
             locationName = listOf(locationName),
-            elementName = listOf("Wx", "PoP", "MinT", "MaxT", "CI"),
-            timeFrom = timeFrom.orEmpty(),
-            timeTo = timeTo.orEmpty(),
-            sort = "time"
+            locationId = locationId,
+            timeFrom = startTime,
+            timeTo = endTime,
+            sort = "time",
+            format = "JSON",
+            elementName = listOf(
+                "天氣預報綜合描述",
+                "3小時降雨機率",
+                "溫度",
+                "體感溫度",
+                "最高溫度",
+                "最低溫度"
+            ).joinToString(",")
         )
         return extractRecords(response)
     }
