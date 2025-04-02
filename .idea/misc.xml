@@ -5,6 +5,7 @@
     <file type="web" url="file://$PROJECT_DIR$/cwa-tw" />
     <file type="web" url="file://$PROJECT_DIR$/date" />
     <file type="web" url="file://$PROJECT_DIR$/excel" />
+    <file type="web" url="file://$PROJECT_DIR$/gmail" />
     <file type="web" url="file://$PROJECT_DIR$/google-drive" />
   </component>
   <component name="ProjectRootManager" version="2" languageLevel="JDK_21_PREVIEW" project-jdk-name="21" project-jdk-type="JavaSDK" />
