@@ -33,6 +33,9 @@
 
 ## 設置與配置
 
+### 前提條件
+1. [取得授權碼](https://opendata.cwa.gov.tw/user/authkey)
+
 ### 環境變量設置
 - `AUTH_KEY`: 台灣中央氣象署 API 授權密鑰
 
@@ -64,7 +67,7 @@ java -jar build/quarkus-app/quarkus-run.jar
         "-jar", "D:\\MCP\\cwa-tw-1.0-SNAPSHOT-runner.jar"
       ],
       "env":{
-        "AUTH_KEY": "${auth_key}"
+        "AUTH_KEY": "${AUTH_KEY}"
       }
     }
   }
@@ -78,6 +81,11 @@ java -jar build/quarkus-app/quarkus-run.jar
 ```kotlin
 val weatherTransport = StdioMcpTransport.Builder()
     .command(listOf("java", "-jar", "cwa-tw-runner.jar"))
+    .environment(
+      mapOf(
+        "AUTH_KEY" to System.getenv("AUTH_KEY")
+      )
+    )
     .logEvents(true)
     .build()
 val weatherClient = DefaultMcpClient.Builder().transport(weatherTransport).build()
@@ -90,6 +98,11 @@ aiService.toolProvider(toolProvider)
 ```kotlin
 val weatherTransport = StdioMcpTransport.Builder()
     .command(listOf("jbang", "--quiet", "cwa-tw-1.0-SNAPSHOT-runner.jar"))
+    .environment(
+      mapOf(
+        "AUTH_KEY" to System.getenv("AUTH_KEY")
+      )
+    )
     .logEvents(true)
     .build()
 val weatherClient = DefaultMcpClient.Builder().transport(weatherTransport).build()

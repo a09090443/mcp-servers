@@ -82,7 +82,10 @@ jbang --quiet google-drive-1.0-SNAPSHOT-runner.jar
       "command": "java",
       "args": [
         "-jar", "D:\\MCP\\google-drive-1.0-SNAPSHOT-runner.jar"
-      ]
+      ],
+      "env": {
+        "CREDENTIALS_FILE_PATH": "${CREDENTIALS_FILE_PATH}"
+      }
     }
   }
 }
@@ -101,6 +104,11 @@ jbang --quiet google-drive-1.0-SNAPSHOT-runner.jar
 ```kotlin
 val googleDriveTransport = StdioMcpTransport.Builder()
     .command(listOf("java", "-jar", "google-drive-runner.jar"))
+    .environment(
+        mapOf(
+            "CREDENTIALS_FILE_PATH" to System.getenv("CREDENTIALS_FILE_PATH")
+        )
+    )
     .logEvents(true)
     .build()
 val googleDrive = DefaultMcpClient.Builder().transport(googleDriveTransport).build()
@@ -113,6 +121,11 @@ aiService.toolProvider(toolProvider)
 ```kotlin
 val googleDriveTransport = StdioMcpTransport.Builder()
     .command(listOf("jbang", "--quiet", "google-drive-1.0-SNAPSHOT-runner.jar"))
+    .environment(
+        mapOf(
+            "AUTH_KEY" to System.getenv("AUTH_KEY")
+        )
+    )
     .logEvents(true)
     .build()
 val googleDrive = DefaultMcpClient.Builder().transport(googleDriveTransport).build()
