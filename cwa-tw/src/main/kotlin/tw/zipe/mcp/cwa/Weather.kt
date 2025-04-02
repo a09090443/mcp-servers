@@ -18,6 +18,7 @@ class Weather(
 
     private val authKey = System.getenv("AUTH_KEY")
     private val objectMapper = ObjectMapper()
+    private val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss")
 
     @Tool(description = "Get API ID corresponding to Taiwan cities/counties")
     fun getCityWeatherForecastApiId(@ToolArg(description = "City name,For example:花蓮縣、臺東縣") cityName: String): String? {
@@ -55,39 +56,13 @@ class Weather(
         @ToolArg(description = "Start time, format: yyyy-MM-ddThh:mm:ss") timeFrom: String? = null,
         @ToolArg(description = "End time, format: yyyy-MM-ddThh:mm:ss") timeTo: String? = null
     ): JsonNode {
-        val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss")
         val now = LocalDateTime.now()
-
-        val (startTime, endTime) = when {
-            timeFrom == null && timeTo == null -> {
-                Pair(now.format(formatter), now.plusDays(1).format(formatter))
-            }
-
-            timeFrom != null && timeTo != null -> {
-                val parsedTimeFrom = LocalDateTime.parse(timeFrom, formatter)
-                val parsedTimeTo = LocalDateTime.parse(timeTo, formatter)
-
-                require(!parsedTimeTo.isBefore(parsedTimeFrom)) { "timeTo 不得在 timeFrom 之前" }
-
-                val maxEndTime = parsedTimeFrom.plusHours(24)
-                val actualEndTime = if (parsedTimeTo.isAfter(maxEndTime)) {
-                    maxEndTime.format(formatter)
-                } else {
-                    timeTo
-                }
-
-                Pair(timeFrom, actualEndTime)
-            }
-
-            timeFrom != null -> {
-                val parsedTimeFrom = LocalDateTime.parse(timeFrom, formatter)
-                Pair(timeFrom, parsedTimeFrom.plusHours(24).format(formatter))
-            }
-
-            else -> {
-                throw IllegalArgumentException("如果提供 timeTo，则必须同时提供 timeFrom")
-            }
-        }
+        val (startTime, endTime) = calculateTimeRange(
+            timeFrom, timeTo, now,
+            defaultStartTime = now,
+            defaultEndTime = now.plusDays(1),
+            maxDuration = Duration.ofHours(24)
+        )
 
         val response = weatherClient.getTownshipWeatherForecast(
             authorization = authKey,
@@ -109,7 +84,7 @@ class Weather(
         return extractRecords(response)
     }
 
-    @Tool(description = "Get earthquake observation data for a specific area, areaName is required, returns data within 36 hours by default")
+    @Tool(description = "Get earthquake observation data for a specific area. AreaName is required. Time can only be set before the current time, and the time range cannot exceed 36 hours.")
     fun getEarthquakeData(
         @ToolArg(description = "City name,For example:花蓮縣、臺東縣") areaName: String,
         @ToolArg(description = "Start time (yyyy-MM-ddThh:mm:ss)") timeFrom: String? = null,
@@ -117,50 +92,13 @@ class Weather(
     ): JsonNode {
         val now = LocalDateTime.now()
         val thirtySixHoursAgo = now.minusHours(36)
-        val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss")
 
-        val (startTime, endTime) = when {
-            timeFrom == null && timeTo == null -> {
-                // 預設情況：取過去36小時的數據
-                Pair(thirtySixHoursAgo.format(formatter), now.format(formatter))
-            }
-
-            timeFrom != null && timeTo != null -> {
-                // 兩個時間點都存在
-                val parsedTimeFrom = LocalDateTime.parse(timeFrom, formatter)
-                val parsedTimeTo = LocalDateTime.parse(timeTo, formatter)
-
-                require(!parsedTimeTo.isBefore(parsedTimeFrom)) { "timeTo 不得在 timeFrom 之前" }
-
-                val duration = Duration.between(parsedTimeFrom, parsedTimeTo)
-                if (duration.toHours() > 36) {
-                    // 如果時間範圍超過36小時，則限制為36小時
-                    Pair(timeFrom, parsedTimeFrom.plusHours(36).format(formatter))
-                } else {
-                    Pair(timeFrom, timeTo)
-                }
-            }
-
-            timeFrom != null -> {
-                // 只有起始時間
-                val parsedTimeFrom = LocalDateTime.parse(timeFrom, formatter)
-                val timeFromPlus36Hours = parsedTimeFrom.plusHours(36)
-
-                val actualEndTime = if (timeFromPlus36Hours.isAfter(now)) {
-                    now.format(formatter)
-                } else {
-                    timeFromPlus36Hours.format(formatter)
-                }
-
-                Pair(timeFrom, actualEndTime)
-            }
-
-            else -> {
-                // 只有結束時間
-                val parsedTimeTo = LocalDateTime.parse(timeTo!!, formatter)
-                Pair(parsedTimeTo.minusHours(36).format(formatter), timeTo)
-            }
-        }
+        val (startTime, endTime) = calculateTimeRange(
+            timeFrom, timeTo, now,
+            defaultStartTime = thirtySixHoursAgo,
+            defaultEndTime = now,
+            maxDuration = Duration.ofHours(36)
+        )
 
         val response = weatherClient.getEarthquakeData(
             authorization = authKey,
@@ -171,6 +109,57 @@ class Weather(
             sort = "time"
         )
         return extractRecords(response)
+    }
+
+    private fun calculateTimeRange(
+        timeFrom: String?,
+        timeTo: String?,
+        now: LocalDateTime,
+        defaultStartTime: LocalDateTime,
+        defaultEndTime: LocalDateTime,
+        maxDuration: Duration
+    ): Pair<String, String> {
+        return when {
+            timeFrom == null && timeTo == null -> {
+                // 使用默认值
+                Pair(defaultStartTime.format(formatter), defaultEndTime.format(formatter))
+            }
+
+            timeFrom != null && timeTo != null -> {
+                val parsedTimeFrom = LocalDateTime.parse(timeFrom, formatter)
+                val parsedTimeTo = LocalDateTime.parse(timeTo, formatter)
+
+                require(!parsedTimeTo.isBefore(parsedTimeFrom)) { "timeTo 不得在 timeFrom 之前" }
+
+                val maxEndTime = parsedTimeFrom.plus(maxDuration)
+                val actualEndTime = if (parsedTimeTo.isAfter(maxEndTime)) {
+                    maxEndTime.format(formatter)
+                } else {
+                    timeTo
+                }
+
+                Pair(timeFrom, actualEndTime)
+            }
+
+            timeFrom != null -> {
+                val parsedTimeFrom = LocalDateTime.parse(timeFrom, formatter)
+                val endTimeCandidate = parsedTimeFrom.plus(maxDuration)
+
+                val actualEndTime = if (endTimeCandidate.isAfter(now) && maxDuration.toHours() > 24) {
+                    now.format(formatter)
+                } else {
+                    endTimeCandidate.format(formatter)
+                }
+
+                Pair(timeFrom, actualEndTime)
+            }
+
+            else -> {
+                val parsedTimeTo = LocalDateTime.parse(timeTo!!, formatter)
+                val startTime = parsedTimeTo.minus(maxDuration).format(formatter)
+                Pair(startTime, timeTo)
+            }
+        }
     }
 
     private fun extractRecords(response: Map<String, Any>): JsonNode {
