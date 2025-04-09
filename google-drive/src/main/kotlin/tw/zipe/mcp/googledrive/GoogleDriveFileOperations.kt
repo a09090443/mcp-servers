@@ -322,6 +322,31 @@ class GoogleDriveFileOperations {
         }
     }
 
+    // Get file by file ID
+    @Tool(description = "Get file details by file ID")
+    fun getFileById(@ToolArg(description = "Google Drive file ID") fileId: String): String {
+        return try {
+            val file = driveService.files().get(fileId)
+                .setFields("id, name, mimeType, size, createdTime, modifiedTime, parents")
+                .execute()
+
+            createSuccessResponse(
+                mapOf(
+                    "fileId" to file.id,
+                    "fileName" to file.name,
+                    "mimeType" to file.mimeType,
+                    "type" to if (file.mimeType == FOLDER_MIME_TYPE) "Directory" else "File",
+                    "size" to file.getSize(),
+                    "created" to file.createdTime,
+                    "modified" to file.modifiedTime,
+                    "parents" to file.parents
+                )
+            )
+        } catch (e: Exception) {
+            createErrorResponse(e.message ?: "Failed to get file", mapOf("fileId" to fileId))
+        }
+    }
+
     // Rename file
     @Tool(description = "Change file name in Google Drive")
     fun renameFile(
@@ -523,4 +548,5 @@ class GoogleDriveFileOperations {
             )
         }
     }
+
 }
