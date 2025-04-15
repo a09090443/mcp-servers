@@ -32,8 +32,8 @@ class DateZoneOperations {
         return gson.toJson(responseMap)
     }
 
-    // Get today's date
-    @Tool(description = "Get today's date")
+    // Get current date
+    @Tool(description = "Get current date")
     fun getTodayDate(
         @ToolArg(description = "Date format, default is yyyy-MM-dd") format: String = "yyyy-MM-dd"
     ): String {
