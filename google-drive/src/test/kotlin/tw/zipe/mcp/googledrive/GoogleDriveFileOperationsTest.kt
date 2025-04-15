@@ -3,10 +3,14 @@ package tw.zipe.mcp.googledrive
 import com.google.gson.Gson
 import java.io.File
 import java.io.FileWriter
-import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertNotEquals
+import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.AfterEach
 
 /**
  * @author Gary
@@ -124,16 +128,9 @@ class GoogleDriveFileOperationsTest {
         assertTrue(readResult["success"] as Boolean, "Reading uploaded file should be successful")
         val originalContent = readResult["content"] as String
 
-        // 創建一個新的臨時文件，用於更新
-        val updatedFile = File.createTempFile("updated_file", ".txt").apply {
-            FileWriter(this).use { writer ->
-                writer.write("This is updated content for testing file update")
-            }
-            deleteOnExit()
-        }
-
-        // 更新文件內容
-        val updateResultJson = driveOperations.updateFile(fileId, updatedFile.absolutePath, "text/plain")
+        // 更新文件內容（直接提供新內容字串）
+        val updatedContent = "This is updated content for testing file update"
+        val updateResultJson = driveOperations.updateFile(fileId, updatedContent, "text/plain")
         val updateResult = gson.fromJson(updateResultJson, Map::class.java)
         assertTrue(updateResult["success"] as Boolean, "File update should be successful")
 
@@ -141,10 +138,52 @@ class GoogleDriveFileOperationsTest {
         val readUpdatedResultJson = driveOperations.readFile(fileId)
         val readUpdatedResult = gson.fromJson(readUpdatedResultJson, Map::class.java)
         assertTrue(readUpdatedResult["success"] as Boolean, "Reading updated file should be successful")
-        val updatedContent = readUpdatedResult["content"] as String
+        val newContent = readUpdatedResult["content"] as String
 
-        assertNotNull(updatedContent, "Updated content should not be null")
-        assertTrue(updatedContent != originalContent, "Updated content should differ from original content")
+        assertNotNull(newContent, "Updated content should not be null")
+        assertEquals(updatedContent, newContent, "Updated content should match the content we sent")
+        assertNotEquals(originalContent, newContent, "Updated content should differ from original content")
+    }
+
+    @Test
+    fun `test update file from local file`() {
+        // 先創建一個文件
+        val fileName = "file_to_update_${System.currentTimeMillis()}.txt"
+        val initialContent = "Initial content"
+        val createResultJson = driveOperations.createNewFile(fileName, initialContent)
+        val createResult = gson.fromJson(createResultJson, Map::class.java)
+
+        assertTrue(createResult["success"] as Boolean, "File creation should be successful")
+        val fileId = createResult["fileId"] as String
+        testFileIds.add(fileId)
+
+        // 創建一個新的臨時文件，用於更新
+        val updatedFile = File.createTempFile("updated_file", ".txt").apply {
+            FileWriter(this).use { writer ->
+                writer.write("This is updated content from local file")
+            }
+            deleteOnExit()
+        }
+
+        // 使用本地文件更新 Google Drive 文件
+        val updateResultJson = driveOperations.updateFileFromLocal(
+            fileId,
+            updatedFile.absolutePath,
+            "text/plain"
+        )
+        val updateResult = gson.fromJson(updateResultJson, Map::class.java)
+        assertTrue(updateResult["success"] as Boolean, "File update from local file should be successful")
+
+        // 驗證文件內容已更新
+        val readResultJson = driveOperations.readFile(fileId)
+        val readResult = gson.fromJson(readResultJson, Map::class.java)
+        assertTrue(readResult["success"] as Boolean, "Reading updated file should be successful")
+        val content = readResult["content"] as String
+
+        assertTrue(
+            content.contains("updated content from local file"),
+            "File content should contain text from the local file"
+        )
     }
 
     @Test
@@ -210,10 +249,10 @@ class GoogleDriveFileOperationsTest {
         assertTrue(renameResult["success"] as Boolean, "Renaming file should be successful")
 
         // 驗證文件已被重命名
-        val getIdResultJson = driveOperations.getFileIdByName(newName)
-        val getIdResult = gson.fromJson(getIdResultJson, Map::class.java)
-        assertTrue(getIdResult["success"] as Boolean, "Getting file ID by new name should be successful")
-        assertEquals(fileId, getIdResult["fileId"], "File ID after renaming should be unchanged")
+        val getFileResultJson = driveOperations.getFileById(fileId)
+        val getFileResult = gson.fromJson(getFileResultJson, Map::class.java)
+        assertTrue(getFileResult["success"] as Boolean, "Getting file by ID should be successful")
+        assertEquals(newName, getFileResult["fileName"], "File name should be updated to new name")
 
         // 確認舊名稱不再存在
         val getOldIdResultJson = driveOperations.getFileIdByName(originalName)
@@ -265,6 +304,12 @@ class GoogleDriveFileOperationsTest {
         val renameDirResultJson = driveOperations.renameDirectory(directoryId, newDirName)
         val renameDirResult = gson.fromJson(renameDirResultJson, Map::class.java)
         assertTrue(renameDirResult["success"] as Boolean, "Directory renaming should be successful")
+
+        // 獲取目錄信息確認改名成功
+        val getDirResultJson = driveOperations.getFileById(directoryId)
+        val getDirResult = gson.fromJson(getDirResultJson, Map::class.java)
+        assertTrue(getDirResult["success"] as Boolean, "Getting directory by ID should be successful")
+        assertEquals(newDirName, getDirResult["fileName"], "Directory name should be updated")
 
         // 刪除子目錄
         val deleteSubDirResultJson = driveOperations.deleteDirectory(subDirId)
@@ -320,11 +365,24 @@ class GoogleDriveFileOperationsTest {
         assertTrue(listDirResult["success"] as Boolean, "Listing directory contents should be successful")
 
         val dirContents = listDirResult["contents"] as List<*>
-        assertEquals(1, dirContents.size, "Directory should contain exactly one file")
+        assertTrue(dirContents.isNotEmpty(), "Directory should contain at least one file")
 
-        val fileInDir = dirContents[0] as Map<*, *>
-        assertEquals(fileId, fileInDir["id"], "File in directory should have correct ID")
-        assertEquals(fileName, fileInDir["name"], "File in directory should have correct name")
+        var fileFound = false
+        for (item in dirContents) {
+            val fileMap = item as Map<*, *>
+            if (fileMap["id"] == fileId && fileMap["name"] == fileName) {
+                fileFound = true
+                break
+            }
+        }
+        assertTrue(fileFound, "File should be found in directory after moving")
+
+        // 測試檢查文件是否存在
+        val checkExistsJson = driveOperations.checkFileExistsInDirectory(directoryId, fileName)
+        val checkExistsResult = gson.fromJson(checkExistsJson, Map::class.java)
+        assertTrue(checkExistsResult["success"] as Boolean, "File existence check should be successful")
+        assertTrue(checkExistsResult["exists"] as Boolean, "File should exist in directory")
+        assertEquals(fileId, checkExistsResult["fileId"], "File ID should match")
 
         // 重命名目錄中的文件
         val newFileName = "renamed_file_${System.currentTimeMillis()}.txt"
@@ -337,8 +395,15 @@ class GoogleDriveFileOperationsTest {
         val listAfterRename = gson.fromJson(listAfterRenameJson, Map::class.java)
         val contentsAfterRename = listAfterRename["contents"] as List<*>
 
-        val renamedFile = contentsAfterRename[0] as Map<*, *>
-        assertEquals(newFileName, renamedFile["name"], "File should have new name after rename")
+        var renamedFileFound = false
+        for (item in contentsAfterRename) {
+            val fileMap = item as Map<*, *>
+            if (fileMap["id"] == fileId && fileMap["name"] == newFileName) {
+                renamedFileFound = true
+                break
+            }
+        }
+        assertTrue(renamedFileFound, "File should have new name after rename")
     }
 
     @Test
@@ -353,6 +418,45 @@ class GoogleDriveFileOperationsTest {
 
         // 確認返回的目錄ID是 "root"
         assertEquals("root", listRootResult["directoryId"], "Directory ID should be 'root'")
+    }
+
+    @Test
+    fun `test search directories`() {
+        // 創建一個具有獨特名稱的目錄，以便於搜尋
+        val uniqueDirName = "unique_search_dir_${System.currentTimeMillis()}"
+        val createDirResultJson = driveOperations.createDirectory(uniqueDirName)
+        val createDirResult = gson.fromJson(createDirResultJson, Map::class.java)
+        assertTrue(createDirResult["success"] as Boolean, "Directory creation should be successful")
+
+        val directoryId = createDirResult["directoryId"] as String
+        testDirectoryIds.add(directoryId)
+
+        // 測試模糊搜索目錄
+        val searchPartialResultJson = driveOperations.searchDirectories(
+            uniqueDirName.substring(0, 10),
+            false
+        )
+        val searchPartialResult = gson.fromJson(searchPartialResultJson, Map::class.java)
+        assertTrue(
+            searchPartialResult["success"] as Boolean,
+            "Directory search with partial match should be successful"
+        )
+
+        val partialResults = searchPartialResult["directories"] as List<*>
+        assertTrue(partialResults.isNotEmpty(), "Partial search results should not be empty")
+
+        // 測試精確匹配搜索
+        val searchExactResultJson = driveOperations.searchDirectories(uniqueDirName, true)
+        val searchExactResult = gson.fromJson(searchExactResultJson, Map::class.java)
+        assertTrue(searchExactResult["success"] as Boolean, "Directory search with exact match should be successful")
+
+        val exactResults = searchExactResult["directories"] as List<*>
+        assertTrue(exactResults.isNotEmpty(), "Exact search results should not be empty")
+        assertEquals(1, exactResults.size, "Exact search should return exactly one result")
+
+        val foundDir = exactResults[0] as Map<*, *>
+        assertEquals(directoryId, foundDir["id"], "Found directory ID should match created directory ID")
+        assertEquals(uniqueDirName, foundDir["name"], "Found directory name should match created directory name")
     }
 }
 

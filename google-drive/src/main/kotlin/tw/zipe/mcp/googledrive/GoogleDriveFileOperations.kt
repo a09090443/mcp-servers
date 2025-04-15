@@ -48,14 +48,14 @@ class GoogleDriveFileOperations {
             .build()
     }
 
-    // Shared method: Generate success response JSON
+    // 共用方法: 生成成功響應 JSON
     private fun createSuccessResponse(data: Map<String, Any?>): String {
         val responseMap = mutableMapOf<String, Any?>("success" to true)
         responseMap.putAll(data)
         return gson.toJson(responseMap)
     }
 
-    // Shared method: Generate error response JSON
+    // 共用方法: 生成錯誤響應 JSON
     private fun createErrorResponse(error: String, data: Map<String, Any?> = emptyMap()): String {
         val responseMap = mutableMapOf<String, Any?>("success" to false, "error" to error)
         responseMap.putAll(data)
@@ -63,7 +63,7 @@ class GoogleDriveFileOperations {
     }
 
     private fun getCredentials(httpTransport: HttpTransport): Credential {
-        // Load client secrets
+        // 加載客戶端密鑰
         val jsonFile = System.getenv("CREDENTIALS_FILE_PATH")
         require(!jsonFile.isNullOrEmpty()) { "CREDENTIALS_FILE_PATH environment variable is not set." }
 
@@ -71,7 +71,7 @@ class GoogleDriveFileOperations {
         val inputStream = credentialFile.inputStream()
         val clientSecrets = GoogleClientSecrets.load(JSON_FACTORY, InputStreamReader(inputStream))
 
-        // Build authorization flow
+        // 構建授權流程
         val flow = GoogleAuthorizationCodeFlow.Builder(
             httpTransport,
             JSON_FACTORY,
@@ -86,59 +86,60 @@ class GoogleDriveFileOperations {
         return AuthorizationCodeInstalledApp(flow, receiver).authorize("user")
     }
 
-    // Shared method: Check if item is a directory
+    // 共用方法: 檢查項目是否為目錄
     private fun isDirectory(fileId: String): Boolean {
         val file = driveService.files()[fileId].execute()
         return file.mimeType == FOLDER_MIME_TYPE
     }
 
-    // Shared method: Get file information
+    // 共用方法: 獲取文件信息
     private fun getFileInfo(fileId: String, fields: String = "id,name,mimeType"): File {
         return driveService.files().get(fileId).setFields(fields).execute()
     }
 
-    // Shared method: Generic rename functionality
+    // 共用方法: 通用重命名功能
     private fun rename(fileId: String, newName: String): File {
         val fileMetadata = File().setName(newName)
         return driveService.files().update(fileId, fileMetadata).execute()
     }
 
-    // Create new file
-    @Tool(description = "Create a new file in Google Drive")
+    @Tool(description = "Create a new file in Google Drive, optionally in a specific directory")
     fun createNewFile(
         @ToolArg(description = "File name") fileName: String,
         @ToolArg(description = "File content, can be empty") content: String = "",
-        @ToolArg(description = "File type, such as: text/plain") mimeType: String = "text/plain"
+        @ToolArg(description = "File type, such as: text/plain") mimeType: String = "text/plain",
+        @ToolArg(description = "Parent directory ID, leave empty for root directory") parentId: String? = null
     ): String {
-        // Set file metadata
+        // 設置文件元數據
         val fileMetadata = File().setName(fileName)
 
-        // Create temporary file and write content
-        val tempFile = java.io.File.createTempFile("temp_", "_file")
-        tempFile.writeText(content)
-        val mediaContent = FileContent(mimeType, tempFile)
+        // 如果提供了 parentId，則將其設為父目錄
+        if (!parentId.isNullOrEmpty()) {
+            fileMetadata.parents = listOf(parentId)
+        }
+        // 將內容轉換為字節數組
+        val contentBytes = content.toByteArray(StandardCharsets.UTF_8)
+        val mediaContent = com.google.api.client.http.ByteArrayContent(mimeType, contentBytes)
 
         return try {
-            // Upload file to Google Drive
+            // 上傳文件到 Google Drive
             val uploadedFile = driveService.files().create(fileMetadata, mediaContent)
-                .setFields("id, name")
+                .setFields("id, name, parents")
                 .execute()
 
             createSuccessResponse(
                 mapOf(
                     "fileId" to uploadedFile.id,
-                    "fileName" to uploadedFile.name
+                    "fileName" to uploadedFile.name,
+                    "parentId" to (uploadedFile.parents?.firstOrNull() ?: "root")
                 )
             )
         } catch (e: Exception) {
             createErrorResponse(e.message ?: "Failed to create file")
-        } finally {
-            // Delete temporary file
-            tempFile.delete()
         }
     }
 
-    // Upload file
+    // 上傳文件
     @Tool(description = "Upload a file to Google Drive")
     fun uploadFile(
         @ToolArg(description = "Local file path") filePath: String,
@@ -165,7 +166,7 @@ class GoogleDriveFileOperations {
         }
     }
 
-    // Delete file
+    // 刪除文件
     @Tool(description = "Delete a file from Google Drive")
     fun deleteFile(@ToolArg(description = "Google Drive file ID") fileId: String): String {
         return try {
@@ -181,17 +182,17 @@ class GoogleDriveFileOperations {
         }
     }
 
-    // Read file content
+    // 讀取文件內容
     @Tool(description = "Read file content from Google Drive")
     fun readFile(@ToolArg(description = "Google Drive file ID") fileId: String): String {
         return try {
             val fileInfo = getFileInfo(fileId, "id,name,mimeType")
             val inputStream = driveService.files()[fileId].executeMediaAsInputStream()
-            // Convert file content to string
+            // 將文件內容轉換為字符串
             val content = if (fileInfo.mimeType.contains("text/") || fileInfo.mimeType.contains("application/json")) {
                 IOUtils.toString(inputStream, StandardCharsets.UTF_8)
             } else {
-                // Binary files return Base64 encoding
+                // 二進制文件返回 Base64 編碼
                 "[Binary file - Please use download function]"
             }
 
@@ -208,17 +209,18 @@ class GoogleDriveFileOperations {
         }
     }
 
-    // Update file content
+    // 更新文件內容
     @Tool(description = "Update file content in Google Drive")
     fun updateFile(
         @ToolArg(description = "Google Drive file ID") fileId: String,
-        @ToolArg(description = "Local file path to upload") filePath: String,
-        @ToolArg(description = "File type, such as: text/plain") fileType: String
+        @ToolArg(description = "New file content as string") content: String,
+        @ToolArg(description = "File type, such as: text/plain") fileType: String = "text/plain"
     ): String {
         return try {
             val fileMetadata = File()
-            val file = java.io.File(filePath)
-            val mediaContent = FileContent(fileType, file)
+            // 將內容轉換為字節數組
+            val contentBytes = content.toByteArray(StandardCharsets.UTF_8)
+            val mediaContent = com.google.api.client.http.ByteArrayContent(fileType, contentBytes)
 
             val updatedFile = driveService.files().update(fileId, fileMetadata, mediaContent)
                 .setFields("id,name")
@@ -236,7 +238,35 @@ class GoogleDriveFileOperations {
         }
     }
 
-    // List all files
+    // 使用本地文件更新文件內容
+    @Tool(description = "Update file content in Google Drive using local file")
+    fun updateFileFromLocal(
+        @ToolArg(description = "Google Drive file ID") fileId: String,
+        @ToolArg(description = "Local file path to upload") filePath: String,
+        @ToolArg(description = "File type, such as: text/plain") fileType: String
+    ): String {
+        return try {
+            val fileMetadata = File()
+            val file = java.io.File(filePath)
+            val mediaContent = FileContent(fileType, file)
+
+            val updatedFile = driveService.files().update(fileId, fileMetadata, mediaContent)
+                .setFields("id,name")
+                .execute()
+
+            createSuccessResponse(
+                mapOf(
+                    "message" to "File content updated successfully from local file",
+                    "fileId" to updatedFile.id,
+                    "fileName" to updatedFile.name
+                )
+            )
+        } catch (e: Exception) {
+            createErrorResponse(e.message ?: "Failed to update file", mapOf("fileId" to fileId))
+        }
+    }
+
+    // 列出所有文件
     @Tool(description = "List all files in Google Drive")
     fun listFiles(): String {
         return try {
@@ -266,7 +296,7 @@ class GoogleDriveFileOperations {
         }
     }
 
-    // Get file ID by file name
+    // 通過文件名獲取文件 ID
     @Tool(description = "Get file ID by file name in Google Drive")
     fun getFileIdByName(@ToolArg(description = "File name in Google Drive") fileName: String): String {
         return try {
@@ -292,7 +322,7 @@ class GoogleDriveFileOperations {
         }
     }
 
-    // Advanced search function, supports fuzzy matching
+    // 高級搜索功能，支持模糊匹配
     @Tool(description = "Search files in Google Drive and return file ID list")
     fun searchFiles(@ToolArg(description = "Search keyword") query: String): String {
         return try {
@@ -322,7 +352,7 @@ class GoogleDriveFileOperations {
         }
     }
 
-    // Get file by file ID
+    // 通過文件 ID 獲取文件
     @Tool(description = "Get file details by file ID")
     fun getFileById(@ToolArg(description = "Google Drive file ID") fileId: String): String {
         return try {
@@ -347,7 +377,7 @@ class GoogleDriveFileOperations {
         }
     }
 
-    // Rename file
+    // 重命名文件
     @Tool(description = "Change file name in Google Drive")
     fun renameFile(
         @ToolArg(description = "Google Drive file ID") fileId: String,
@@ -368,7 +398,7 @@ class GoogleDriveFileOperations {
         }
     }
 
-    // Create directory in root
+    // 在根目錄創建目錄
     @Tool(description = "Create directory in Google Drive root")
     fun createDirectory(
         @ToolArg(description = "Directory name") directoryName: String
@@ -391,7 +421,7 @@ class GoogleDriveFileOperations {
         }
     }
 
-    // Create directory in specified parent directory
+    // 在指定父目錄下創建目錄
     @Tool(description = "Create directory in a specified parent directory in Google Drive")
     fun createDirectoryInParent(
         @ToolArg(description = "Directory name") directoryName: String,
@@ -418,69 +448,69 @@ class GoogleDriveFileOperations {
         }
     }
 
-    // Delete directory
+    // 刪除目錄
     @Tool(description = "Delete a directory from Google Drive")
     fun deleteDirectory(
-        @ToolArg(description = "Google Drive directory ID") dirId: String
+        @ToolArg(description = "Google Drive directory ID") directoryId: String
     ): String {
         return try {
-            if (!isDirectory(dirId)) {
+            if (!isDirectory(directoryId)) {
                 return createErrorResponse(
-                    "ID $dirId is not a directory, cannot execute directory deletion",
-                    mapOf("directoryId" to dirId)
+                    "ID $directoryId is not a directory, cannot execute directory deletion",
+                    mapOf("directoryId" to directoryId)
                 )
             }
 
-            driveService.files().delete(dirId).execute()
+            driveService.files().delete(directoryId).execute()
             createSuccessResponse(
                 mapOf(
                     "message" to "Directory deleted successfully",
-                    "directoryId" to dirId
+                    "directoryId" to directoryId
                 )
             )
         } catch (e: Exception) {
-            createErrorResponse(e.message ?: "Failed to delete directory", mapOf("directoryId" to dirId))
+            createErrorResponse(e.message ?: "Failed to delete directory", mapOf("directoryId" to directoryId))
         }
     }
 
-    // Rename directory
+    // 重命名目錄
     @Tool(description = "Rename a directory in Google Drive")
     fun renameDirectory(
-        @ToolArg(description = "Google Drive directory ID") dirId: String,
+        @ToolArg(description = "Google Drive directory ID") directoryId: String,
         @ToolArg(description = "New directory name") newName: String
     ): String {
         return try {
-            if (!isDirectory(dirId)) {
+            if (!isDirectory(directoryId)) {
                 return createErrorResponse(
-                    "ID $dirId is not a directory, cannot execute directory rename operation",
-                    mapOf("directoryId" to dirId)
+                    "ID $directoryId is not a directory, cannot execute directory rename operation",
+                    mapOf("directoryId" to directoryId)
                 )
             }
 
-            val renamedDir = rename(dirId, newName)
+            val renamedDir = rename(directoryId, newName)
             createSuccessResponse(
                 mapOf(
                     "message" to "Directory renamed successfully",
-                    "directoryId" to dirId,
+                    "directoryId" to directoryId,
                     "newName" to newName,
                     "oldName" to renamedDir.name
                 )
             )
         } catch (e: Exception) {
-            createErrorResponse(e.message ?: "Failed to rename", mapOf("directoryId" to dirId))
+            createErrorResponse(e.message ?: "Failed to rename", mapOf("directoryId" to directoryId))
         }
     }
 
-    // List files and subdirectories in a directory
+    // 列出目錄中的文件和子目錄
     @Tool(description = "List files and subdirectories in a Google Drive directory")
     fun listDirectoryContents(
-        @ToolArg(description = "Google Drive directory ID, empty value means root directory") dirId: String? = null
+        @ToolArg(description = "Google Drive directory ID, empty value means root directory") directoryId: String? = null
     ): String {
         return try {
-            val query = if (dirId.isNullOrEmpty()) {
+            val query = if (directoryId.isNullOrEmpty()) {
                 "'root' in parents and trashed = false"
             } else {
-                "'$dirId' in parents and trashed = false"
+                "'$directoryId' in parents and trashed = false"
             }
 
             val result = driveService.files().list()
@@ -499,7 +529,7 @@ class GoogleDriveFileOperations {
 
             createSuccessResponse(
                 mapOf(
-                    "directoryId" to (dirId ?: "root"),
+                    "directoryId" to (directoryId ?: "root"),
                     "contents" to contents,
                     "totalCount" to contents.size
                 )
@@ -507,22 +537,22 @@ class GoogleDriveFileOperations {
         } catch (e: Exception) {
             createErrorResponse(
                 e.message ?: "Failed to list directory contents",
-                mapOf("directoryId" to (dirId ?: "root"))
+                mapOf("directoryId" to (directoryId ?: "root"))
             )
         }
     }
 
-    // Move file to specified directory
+    // 將文件移動到指定目錄
     @Tool(description = "Move a file to a specified directory")
     fun moveFile(
         @ToolArg(description = "Google Drive file ID") fileId: String,
         @ToolArg(description = "Target directory ID") targetDirId: String
     ): String {
         return try {
-            // First get the current parent directory of the file
+            // 首先獲取文件的當前父目錄
             val file = getFileInfo(fileId, "id,name,parents")
 
-            // Remove from all parent directories and add to new directory
+            // 從所有父目錄中移除並添加到新目錄
             val previousParents = file.parents.joinToString(",")
             val updatedFile = driveService.files().update(fileId, null)
                 .setAddParents(targetDirId)
@@ -549,4 +579,87 @@ class GoogleDriveFileOperations {
         }
     }
 
+    // 檢查指定名稱的文件是否存在於目錄中
+    @Tool(description = "Check if a file with specified name exists in a directory")
+    fun checkFileExistsInDirectory(
+        @ToolArg(description = "Directory ID") directoryId: String,
+        @ToolArg(description = "File name to check") fileName: String
+    ): String {
+        return try {
+            // 構建查詢：在指定目錄中查找有特定名稱且不在垃圾桶中的文件
+            val query = "'$directoryId' in parents and name = '$fileName' and trashed = false"
+
+            val result = driveService.files().list()
+                .setQ(query)
+                .setFields("files(id, name)")
+                .execute()
+
+            val files = result.files
+            val exists = files != null && files.isNotEmpty()
+
+            createSuccessResponse(
+                mapOf(
+                    "exists" to exists,
+                    "directoryId" to directoryId,
+                    "fileName" to fileName,
+                    "fileId" to if (exists) files[0].id else null
+                )
+            )
+        } catch (e: Exception) {
+            createErrorResponse(
+                e.message ?: "Error checking if file exists",
+                mapOf(
+                    "directoryId" to directoryId,
+                    "fileName" to fileName
+                )
+            )
+        }
+    }
+
+    // 搜索目錄功能
+    @Tool(description = "Search directories in Google Drive by name")
+    fun searchDirectories(
+        @ToolArg(description = "Directory name or keyword to search") query: String,
+        @ToolArg(description = "Whether to perform exact match (true) or partial match (false)") exactMatch: Boolean = false
+    ): String {
+        return try {
+            // 建立查詢條件
+            val queryString = if (exactMatch) {
+                "mimeType = '$FOLDER_MIME_TYPE' and name = '$query' and trashed = false"
+            } else {
+                "mimeType = '$FOLDER_MIME_TYPE' and name contains '$query' and trashed = false"
+            }
+
+            val result = driveService.files().list()
+                .setQ(queryString)
+                .setSpaces("drive")
+                .setFields("files(id, name, parents)")
+                .execute()
+
+            val directories = result.files.map {
+                mapOf(
+                    "id" to it.id,
+                    "name" to it.name,
+                    "parentId" to (it.parents?.firstOrNull() ?: "root")
+                )
+            }
+
+            createSuccessResponse(
+                mapOf(
+                    "directories" to directories,
+                    "totalCount" to directories.size,
+                    "query" to query,
+                    "exactMatch" to exactMatch
+                )
+            )
+        } catch (e: Exception) {
+            createErrorResponse(
+                e.message ?: "Failed to search directories",
+                mapOf(
+                    "query" to query,
+                    "exactMatch" to exactMatch
+                )
+            )
+        }
+    }
 }
