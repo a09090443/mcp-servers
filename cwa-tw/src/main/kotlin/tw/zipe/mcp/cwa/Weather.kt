@@ -4,21 +4,19 @@ import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import io.quarkiverse.mcp.server.Tool
 import io.quarkiverse.mcp.server.ToolArg
-import jakarta.enterprise.context.ApplicationScoped
 import java.time.Duration
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import org.eclipse.microprofile.rest.client.inject.RestClient
 
-@ApplicationScoped
-class Weather(
-    @RestClient
-    private val weatherClient: WeatherClient
-) {
+class Weather {
 
     private val authKey = System.getenv("AUTH_KEY")
     private val objectMapper = ObjectMapper()
     private val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss")
+
+    @RestClient
+    lateinit var weatherClient: WeatherClient
 
     @Tool(description = "Get API ID corresponding to Taiwan cities/counties")
     fun getCityWeatherForecastApiId(@ToolArg(description = "City name,For example:花蓮縣、臺東縣") cityName: String): String? {

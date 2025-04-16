@@ -13,8 +13,8 @@ val quarkusPlatformGroupId: String by project
 val quarkusPlatformArtifactId: String by project
 val quarkusPlatformVersion: String by project
 val mcpServerStdioVersion = "1.0.0"
-val gsonVersion="2.12.1"
-val mockitoCoreVersion="5.16.1"
+val gsonVersion = "2.12.1"
+val mockitoCoreVersion = "5.16.1"
 
 dependencies {
     implementation(enforcedPlatform("${quarkusPlatformGroupId}:${quarkusPlatformArtifactId}:${quarkusPlatformVersion}"))
@@ -42,6 +42,7 @@ java {
 
 tasks.withType<Test> {
     systemProperty("java.util.logging.manager", "org.jboss.logmanager.LogManager")
+    enabled = true
 }
 allOpen {
     annotation("jakarta.ws.rs.Path")

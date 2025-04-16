@@ -4,7 +4,11 @@ import io.quarkus.test.junit.QuarkusTest
 import jakarta.inject.Inject
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
-import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Assertions.assertThrows
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
 @QuarkusTest
@@ -189,4 +193,5 @@ class WeatherTest {
         assertNotNull(result)
         assertTrue(result.isObject || result.isArray, "Result should be a JSON object or array")
     }
+
 }
