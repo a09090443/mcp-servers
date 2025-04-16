@@ -53,7 +53,7 @@ class DateZoneOperations {
     }
 
     // Get current date time in specified time zone
-    @Tool(description = "Get current date time in specified time zone")
+    @Tool(description = "Get current date time in specified time zone, default date formate is yyyy-MM-dd HH:mm:ss")
     fun getDateTimeInTimeZone(
         @ToolArg(description = "Time zone ID, e.g.: Asia/Taipei, America/New_York, Europe/London, UTC") timeZone: String,
         @ToolArg(description = "Date time format, default is yyyy-MM-dd HH:mm:ss") format: String = "yyyy-MM-dd HH:mm:ss"
