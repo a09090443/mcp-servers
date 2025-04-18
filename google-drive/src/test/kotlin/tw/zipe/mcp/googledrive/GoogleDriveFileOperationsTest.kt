@@ -504,38 +504,3 @@ class GoogleDriveFileOperationsTest {
     private fun generateUniqueDirectoryName(prefix: String) = "${prefix}_${System.currentTimeMillis()}"
     private fun executeOperation(operation: () -> String): Map<*, *> = gson.fromJson(operation(), Map::class.java)
 }
-
-// SSL 工具類
-class SSLUtil {
-    companion object {
-        fun disableSSLVerification() {
-            try {
-                // 創建信任所有證書的信任管理器
-                val trustAllCerts = arrayOf(object : javax.net.ssl.X509TrustManager {
-                    override fun getAcceptedIssuers(): Array<java.security.cert.X509Certificate> = arrayOf()
-                    override fun checkClientTrusted(
-                        certs: Array<java.security.cert.X509Certificate>,
-                        authType: String
-                    ) {
-                    }
-
-                    override fun checkServerTrusted(
-                        certs: Array<java.security.cert.X509Certificate>,
-                        authType: String
-                    ) {
-                    }
-                })
-
-                // 安裝自定義的 SSLSocketFactory
-                val sc = javax.net.ssl.SSLContext.getInstance("SSL")
-                sc.init(null, trustAllCerts, java.security.SecureRandom())
-                javax.net.ssl.HttpsURLConnection.setDefaultSSLSocketFactory(sc.socketFactory)
-
-                // 安裝自定義的 HostnameVerifier
-                javax.net.ssl.HttpsURLConnection.setDefaultHostnameVerifier { _, _ -> true }
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-        }
-    }
-}
