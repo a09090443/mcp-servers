@@ -13,10 +13,8 @@ val quarkusPlatformGroupId: String by project
 val quarkusPlatformArtifactId: String by project
 val quarkusPlatformVersion: String by project
 val mcpServerStdioVersion = "1.0.0"
-val googleApiClientVersion = "2.7.2"
-val googleOauthClientJettyVersion = "1.39.0"
-val googleApiServicesDriveVersion = "v3-rev20250220-2.0.0"
-val commonsIoVersion = "2.18.0"
+val gsonVersion="2.12.1"
+val mockkVersion="1.14.0"
 
 dependencies {
     implementation(enforcedPlatform("${quarkusPlatformGroupId}:${quarkusPlatformArtifactId}:${quarkusPlatformVersion}"))
@@ -25,15 +23,14 @@ dependencies {
     implementation("io.quarkus:quarkus-arc")
     implementation("io.quarkiverse.mcp:quarkus-mcp-server-stdio:$mcpServerStdioVersion")
 
-    implementation("com.google.api-client:google-api-client:$googleApiClientVersion")
-    implementation("com.google.oauth-client:google-oauth-client-jetty:$googleOauthClientJettyVersion")
-    implementation("com.google.apis:google-api-services-drive:$googleApiServicesDriveVersion")
-    implementation("commons-io:commons-io:$commonsIoVersion")
+    implementation("com.google.code.gson:gson:${gsonVersion}")
 
+    implementation("io.quarkus:quarkus-arc")
     testImplementation("io.quarkus:quarkus-junit5")
+    testImplementation("io.mockk:mockk:${mockkVersion}")
 }
 
-group = "tw.zipe.mcp.googledrive"
+group = "tw.zipe.mcp.filesystem"
 version = "1.0-SNAPSHOT"
 
 java {
