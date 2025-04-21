@@ -168,7 +168,7 @@ class FileSystemOperationsTest {
         val nestedFile = File(testDirPath, "nested.txt")
         Files.write(nestedFile.toPath(), "nested content".toByteArray())
 
-        val response = fileSystemOperations.deleteFile(testDirPath, true)
+        val response = fileSystemOperations.deleteFile(testDirPath, "true")
 
         assertTrue(response.contains("\"success\":true"))
         assertTrue(response.contains("\"deleted\":true"))
@@ -210,7 +210,7 @@ class FileSystemOperationsTest {
         Files.write(File(targetPath).toPath(), "Original target content".toByteArray())
 
         // 使用replace=true複製檔案
-        val response = fileSystemOperations.copyFile(testFilePath, targetPath, true)
+        val response = fileSystemOperations.copyFile(testFilePath, targetPath, "true")
 
         assertTrue(response.contains("\"success\":true"))
         assertTrue(response.contains("\"copied\":true"))
@@ -232,7 +232,7 @@ class FileSystemOperationsTest {
         Files.write(File(targetPath).toPath(), originalTargetContent.toByteArray())
 
         // 嘗試複製但不覆寫
-        val response = fileSystemOperations.copyFile(testFilePath, targetPath, false)
+        val response = fileSystemOperations.copyFile(testFilePath, targetPath, "false")
 
         assertTrue(response.contains("\"success\":false"))
         assertTrue(response.contains("Target file already exists"))
@@ -271,7 +271,7 @@ class FileSystemOperationsTest {
         Files.write(File(targetPath).toPath(), "Original target content".toByteArray())
 
         // 使用replace=true移動檔案
-        val response = fileSystemOperations.moveFile(testFilePath, targetPath, true)
+        val response = fileSystemOperations.moveFile(testFilePath, targetPath, "true")
 
         assertTrue(response.contains("\"success\":true"))
         assertTrue(response.contains("\"moved\":true"))
@@ -297,7 +297,7 @@ class FileSystemOperationsTest {
         Files.write(File(targetPath).toPath(), originalContent.toByteArray())
 
         // 嘗試移動但不覆寫
-        val response = fileSystemOperations.moveFile(testFilePath, targetPath, false)
+        val response = fileSystemOperations.moveFile(testFilePath, targetPath, "false")
 
         assertTrue(response.contains("\"success\":false"))
         assertTrue(response.contains("Target file already exists"))
@@ -337,7 +337,7 @@ class FileSystemOperationsTest {
         Files.write(File(testFilePath).toPath(), "test content".toByteArray())
         File(testDirPath).mkdir()
 
-        val response = fileSystemOperations.listDirectory(tempDir.absolutePath, filesOnly = true)
+        val response = fileSystemOperations.listDirectory(tempDir.absolutePath, filesOnly = "true")
 
         assertTrue(response.contains("\"success\":true"))
         assertTrue(response.contains("test.txt"))
@@ -349,7 +349,7 @@ class FileSystemOperationsTest {
         Files.write(File(testFilePath).toPath(), "test content".toByteArray())
         File(testDirPath).mkdir()
 
-        val response = fileSystemOperations.listDirectory(tempDir.absolutePath, directoriesOnly = true)
+        val response = fileSystemOperations.listDirectory(tempDir.absolutePath, directoriesOnly = "true")
 
         assertTrue(response.contains("\"success\":true"))
         assertTrue(response.contains("\"name\":\"testDir\""))

@@ -185,13 +185,14 @@ class FileSystemOperations {
     @Tool(description = "Delete file or directory")
     fun deleteFile(
         @ToolArg(description = "File or directory path") path: String,
-        @ToolArg(description = "Whether to recursively delete, applicable to directories") recursive: Boolean = false
+        @ToolArg(description = "Whether to recursively delete, applicable to directories") recursive: String = "false"
     ): String {
         return executeIfFileExists(path) { file ->
             val isFile = file.isFile
+            val recursiveDelete = recursive.toBoolean()
             val isDeleted = if (isFile) {
                 file.delete()
-            } else if (recursive) {
+            } else if (recursiveDelete) {
                 file.deleteRecursively()
             } else {
                 file.delete()
@@ -213,7 +214,7 @@ class FileSystemOperations {
     fun copyFile(
         @ToolArg(description = "Source file path") sourcePath: String,
         @ToolArg(description = "Target file path") targetPath: String,
-        @ToolArg(description = "Whether to overwrite if target file exists") replace: Boolean = false
+        @ToolArg(description = "Whether to overwrite if target file exists") replace: String = "false"
     ): String {
         return executeFileOperation(sourcePath) {
             if (!isPathAllowed(targetPath)) {
@@ -231,14 +232,15 @@ class FileSystemOperations {
                 return@executeFileOperation createErrorResponse("Source path is not a file")
             }
 
-            if (targetFile.exists() && !replace) {
+            val replaceBoolean = replace.toBoolean()
+            if (targetFile.exists() && !replaceBoolean) {
                 return@executeFileOperation createErrorResponse("Target file already exists and overwrite not specified")
             }
 
             // Ensure target directory exists
             targetFile.parentFile?.mkdirs()
 
-            val copyOptions = if (replace) {
+            val copyOptions = if (replaceBoolean) {
                 arrayOf(StandardCopyOption.REPLACE_EXISTING)
             } else {
                 emptyArray()
@@ -252,7 +254,7 @@ class FileSystemOperations {
                     "targetPath" to targetPath,
                     "copied" to true,
                     "size" to targetFile.length(),
-                    "replaced" to replace
+                    "replaced" to replaceBoolean
                 )
             )
         }
@@ -263,7 +265,7 @@ class FileSystemOperations {
     fun moveFile(
         @ToolArg(description = "Source file path") sourcePath: String,
         @ToolArg(description = "Target file path") targetPath: String,
-        @ToolArg(description = "Whether to overwrite if target file exists") replace: Boolean = false
+        @ToolArg(description = "Whether to overwrite if target file exists") replace: String = "false"
     ): String {
         return executeFileOperation(sourcePath) {
             if (!isPathAllowed(targetPath)) {
@@ -277,14 +279,15 @@ class FileSystemOperations {
                 return@executeFileOperation createErrorResponse("Source file does not exist")
             }
 
-            if (targetFile.exists() && !replace) {
+            val replaceBoolean = replace.toBoolean()
+            if (targetFile.exists() && !replaceBoolean) {
                 return@executeFileOperation createErrorResponse("Target file already exists and overwrite not specified")
             }
 
             // Ensure target directory exists
             targetFile.parentFile?.mkdirs()
 
-            val moveOptions = if (replace) {
+            val moveOptions = if (replaceBoolean) {
                 arrayOf(StandardCopyOption.REPLACE_EXISTING)
             } else {
                 emptyArray()
@@ -297,7 +300,7 @@ class FileSystemOperations {
                     "sourcePath" to sourcePath,
                     "targetPath" to targetPath,
                     "moved" to true,
-                    "replaced" to replace
+                    "replaced" to replaceBoolean
                 )
             )
         }
@@ -307,8 +310,8 @@ class FileSystemOperations {
     @Tool(description = "List directory contents")
     fun listDirectory(
         @ToolArg(description = "Directory path") directoryPath: String,
-        @ToolArg(description = "Whether to list only files") filesOnly: Boolean = false,
-        @ToolArg(description = "Whether to list only directories") directoriesOnly: Boolean = false
+        @ToolArg(description = "Whether to list only files") filesOnly: String = "false",
+        @ToolArg(description = "Whether to list only directories") directoriesOnly: String = "false"
     ): String {
         return executeFileOperation(directoryPath) {
             val directory = File(directoryPath)
@@ -321,10 +324,13 @@ class FileSystemOperations {
                 return@executeFileOperation createErrorResponse("Specified path is not a directory")
             }
 
+            val filesOnlyBoolean = filesOnly.toBoolean()
+            val directoriesOnlyBoolean = directoriesOnly.toBoolean()
+
             val files = directory.listFiles() ?: emptyArray()
             val filteredFiles = when {
-                filesOnly -> files.filter { it.isFile }
-                directoriesOnly -> files.filter { it.isDirectory }
+                filesOnlyBoolean -> files.filter { it.isFile }
+                directoriesOnlyBoolean -> files.filter { it.isDirectory }
                 else -> files.toList()
             }
 
@@ -344,8 +350,8 @@ class FileSystemOperations {
                     "directoryPath" to directoryPath,
                     "contents" to fileInfos,
                     "count" to fileInfos.size,
-                    "filesOnly" to filesOnly,
-                    "directoriesOnly" to directoriesOnly
+                    "filesOnly" to filesOnlyBoolean,
+                    "directoriesOnly" to directoriesOnlyBoolean
                 )
             )
         }
