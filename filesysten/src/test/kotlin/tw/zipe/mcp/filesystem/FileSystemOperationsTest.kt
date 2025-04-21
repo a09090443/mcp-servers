@@ -440,11 +440,11 @@ class FileSystemOperationsTest {
     @Test
     fun `test creating file with custom charset`() {
         val content = "測試內容"
-        val charset = "GBK"
+        val charset = "UTF-8"
         val response = fileSystemOperations.createFile(testFilePath, content, charset)
 
         assertTrue(response.contains("\"success\":true"))
-        assertTrue(response.contains("\"charset\":\"GBK\""))
+        assertTrue(response.contains("\"charset\":\"UTF-8\""))
 
         // 驗證檔案內容使用指定字符集
         val fileContent =
