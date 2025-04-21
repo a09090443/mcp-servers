@@ -1,58 +1,95 @@
-# date
+# Date MCP 服務器
 
-This project uses Quarkus, the Supersonic Subatomic Java Framework.
+此 MCP 服務器提供日期和時區操作功能，允許您獲取當前日期、處理不同時區的日期時間轉換，以及進行其他日期相關操作。
 
-If you want to learn more about Quarkus, please visit its website: <https://quarkus.io/>.
+## 功能列表
 
-## Running the application in dev mode
+### 日期操作
+- **獲取當前日期**：獲取今天的日期，支援自定義格式
+- **檢查日期**：判斷指定日期是否為今天
 
-You can run your application in dev mode that enables live coding using:
+### 時區操作
+- **獲取時區日期時間**：獲取指定時區的當前日期時間
+- **時區日期轉換**：在不同時區之間轉換日期時間
+- **獲取可用時區**：列出系統支援的所有時區
+- **按地區查詢時區**：獲取指定地區（如亞洲、歐洲、美洲）的所有時區
 
-```shell script
-./gradlew quarkusDev
+## 技術需求
+
+### 開發環境
+- 語言：Kotlin
+- JDK 版本：21
+- 構建工具：Gradle
+- 框架：Quarkus 3.x
+
+### 主要依賴庫
+- Quarkus Kotlin
+- Java Time API：用於日期和時區操作
+- Gson：用於 JSON 格式化
+- MCP Server STDIO：用於 MCP 服務通信
+
+## 設定與配置
+
+### 構建與運行
+使用 Gradle 構建並運行服務：
+
 ```
-
-> **_NOTE:_**  Quarkus now ships with a Dev UI, which is available in dev mode only at <http://localhost:8080/q/dev/>.
-
-## Packaging and running the application
-
-The application can be packaged using:
-
-```shell script
 ./gradlew build
+java -jar build/quarkus-app/quarkus-run.jar
 ```
 
-It produces the `quarkus-run.jar` file in the `build/quarkus-app/` directory.
-Be aware that it’s not an _über-jar_ as the dependencies are copied into the `build/quarkus-app/lib/` directory.
+構建 uber-jar：
 
-The application is now runnable using `java -jar build/quarkus-app/quarkus-run.jar`.
-
-If you want to build an _über-jar_, execute the following command:
-
-```shell script
+```
 ./gradlew build -Dquarkus.package.jar.type=uber-jar
 ```
 
-The application, packaged as an _über-jar_, is now runnable using `java -jar build/*-runner.jar`.
+開發模式運行：
 
-## Creating a native executable
-
-You can create a native executable using:
-
-```shell script
-./gradlew build -Dquarkus.native.enabled=true
+```
+./gradlew quarkusDev
 ```
 
-Or, if you don't have GraalVM installed, you can run the native executable build in a container using:
+### MCP 配置文件設定
+您可以在 MCP 配置文件中添加日期服務：
 
-```shell script
-./gradlew build -Dquarkus.native.enabled=true -Dquarkus.native.container-build=true
+```json
+{
+  "mcpServers": {
+    "date": {
+      "command": "java",
+      "args": [
+        "-jar", "path/to/date-1.0-SNAPSHOT-runner.jar"
+      ]
+    }
+  }
+}
 ```
 
-You can then execute your native executable with: `./build/date-1.0-SNAPSHOT-runner`
+配置說明：
+- 此設定將日期 MCP 服務命名為 date
+- command 指定要執行的命令
+- args 包含執行命令的參數，指向日期 MCP 服務的 JAR 文件
+- 請根據您的實際環境調整 JAR 文件的路徑
 
-If you want to learn more about building native executables, please consult <https://quarkus.io/guides/gradle-tooling>.
+### 與 Langchain4j 整合範例
+以下是與 Langchain4j 整合的範例程式碼：
 
-## Related Guides
+```kotlin
+val dateTransport = StdioMcpTransport.Builder()
+    .command(listOf("java", "-jar", "date-1.0-SNAPSHOT-runner.jar"))
+    .logEvents(true)
+    .build()
+val dateClient = DefaultMcpClient.Builder().transport(dateTransport).build()
+val toolProvider = McpToolProvider.builder().mcpClients(listOf(dateClient)).build()
+aiService.toolProvider(toolProvider)
+```
 
-- Kotlin ([guide](https://quarkus.io/guides/kotlin)): Write your services in Kotlin
+### 日誌配置
+日誌文件配置在 application.properties 中：
+
+```
+quarkus.package.type=uber-jar
+quarkus.log.file.enable=true
+quarkus.log.file.path=D:/tmp/date.log
+```
