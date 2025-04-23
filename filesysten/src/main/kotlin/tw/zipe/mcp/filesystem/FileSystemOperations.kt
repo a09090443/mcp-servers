@@ -381,4 +381,47 @@ class FileSystemOperations {
             createSuccessResponse(info)
         }
     }
+
+    // Create new directory
+    @Tool(description = "Create new directory")
+    fun createDirectory(
+        @ToolArg(description = "Directory path") directoryPath: String,
+        @ToolArg(description = "Whether to create parent directories if they don't exist") createParents: String = "true"
+    ): String {
+        return executeFileOperation(directoryPath) {
+            val directory = File(directoryPath)
+
+            if (directory.exists()) {
+                if (directory.isDirectory) {
+                    return@executeFileOperation createSuccessResponse(
+                        mapOf(
+                            "directoryPath" to directoryPath,
+                            "created" to false,
+                            "alreadyExists" to true
+                        )
+                    )
+                } else {
+                    return@executeFileOperation createErrorResponse("Specified path exists but is not a directory")
+                }
+            }
+
+            val success = if (createParents.toBoolean()) {
+                directory.mkdirs()
+            } else {
+                directory.mkdir()
+            }
+
+            if (!success) {
+                return@executeFileOperation createErrorResponse("Unable to create directory")
+            }
+
+            createSuccessResponse(
+                mapOf(
+                    "directoryPath" to directoryPath,
+                    "created" to true,
+                    "withParents" to createParents.toBoolean()
+                )
+            )
+        }
+    }
 }

@@ -1,8 +1,8 @@
 package tw.zipe.mcp.filesystem
 
+import io.mockk.unmockkAll
 import java.io.File
 import java.nio.file.Files
-import io.mockk.unmockkAll
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -231,7 +231,7 @@ class FileSystemOperationsTest {
         val originalTargetContent = "Original target content"
         Files.write(File(targetPath).toPath(), originalTargetContent.toByteArray())
 
-        // 嘗試複製但不覆寫
+        // 嘗試複製��不覆寫
         val response = fileSystemOperations.copyFile(testFilePath, targetPath, "false")
 
         assertTrue(response.contains("\"success\":false"))
@@ -408,6 +408,47 @@ class FileSystemOperationsTest {
     }
 
     @Test
+    fun `test createDirectory successfully`() {
+        val newDirPath = File(tempDir, "newDir").absolutePath
+        val response = fileSystemOperations.createDirectory(newDirPath)
+
+        assertTrue(response.contains("\"success\":true"))
+        assertTrue(response.contains("\"created\":true"))
+        assertTrue(File(newDirPath).exists())
+        assertTrue(File(newDirPath).isDirectory)
+    }
+
+    @Test
+    fun `test createDirectory with parent directories`() {
+        val nestedDirPath = File(tempDir, "parent/child/nested").absolutePath
+        val response = fileSystemOperations.createDirectory(nestedDirPath, "true")
+
+        assertTrue(response.contains("\"success\":true"))
+        assertTrue(response.contains("\"created\":true"))
+        assertTrue(File(nestedDirPath).exists())
+        assertTrue(File(nestedDirPath).isDirectory)
+    }
+
+    @Test
+    fun `test createDirectory when already exists`() {
+        val response = fileSystemOperations.createDirectory(testDirPath)
+
+        assertTrue(response.contains("\"success\":true"))
+        assertTrue(response.contains("\"created\":false"))
+        assertTrue(response.contains("\"alreadyExists\":true"))
+    }
+
+    @Test
+    fun `test createDirectory when path exists as file`() {
+        Files.write(File(testFilePath).toPath(), "test content".toByteArray())
+
+        val response = fileSystemOperations.createDirectory(testFilePath)
+
+        assertTrue(response.contains("\"success\":false"))
+        assertTrue(response.contains("exists but is not a directory"))
+    }
+
+    @Test
     fun `test path access restriction`() {
         // 保存原始屬性值
         val originalProperty = System.getProperty("fileserver.paths")
@@ -419,7 +460,7 @@ class FileSystemOperationsTest {
             // 應該被限制的路徑
             val restrictedPath = "/restricted/path.txt"
 
-            // 建立新實例，使用更新後的屬性
+            // 建立新實例，使用更新的屬性
             val restrictedOperations = FileSystemOperations()
 
             // 測試限制
