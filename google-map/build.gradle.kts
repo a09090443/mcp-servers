@@ -1,0 +1,59 @@
+plugins {
+    kotlin("jvm") version "2.0.21"
+    kotlin("plugin.allopen") version "2.0.21"
+    id("io.quarkus")
+}
+
+repositories {
+    mavenCentral()
+    mavenLocal()
+}
+
+val quarkusPlatformGroupId: String by project
+val quarkusPlatformArtifactId: String by project
+val quarkusPlatformVersion: String by project
+val mcpServerStdioVersion = "1.1.1"
+val googleApiClientVersion = "2.2.0"
+val googleHttpClientVersion = "1.46.3"
+val googleMapServicesVersion = "2.2.0"
+
+dependencies {
+    implementation(enforcedPlatform("${quarkusPlatformGroupId}:${quarkusPlatformArtifactId}:${quarkusPlatformVersion}"))
+    implementation("io.quarkus:quarkus-kotlin")
+    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
+    implementation("io.quarkus:quarkus-arc")
+    implementation("io.quarkiverse.mcp:quarkus-mcp-server-stdio:$mcpServerStdioVersion")
+
+    implementation("com.google.api-client:google-api-client:${googleApiClientVersion}")
+    implementation("com.google.http-client:google-http-client:${googleHttpClientVersion}")
+    implementation("com.google.http-client:google-http-client-gson:${googleHttpClientVersion}")
+    implementation("com.google.maps:google-maps-services:$googleMapServicesVersion")
+
+    testImplementation("io.quarkus:quarkus-junit5")
+    testImplementation("io.mockk:mockk:1.14.0")
+}
+
+group = "tw.zipe.mcp.googlemap"
+version = "1.0-SNAPSHOT"
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
+}
+
+tasks.withType<Test> {
+    systemProperty("java.util.logging.manager", "org.jboss.logmanager.LogManager")
+}
+allOpen {
+    annotation("jakarta.ws.rs.Path")
+    annotation("jakarta.enterprise.context.ApplicationScoped")
+    annotation("jakarta.persistence.Entity")
+    annotation("io.quarkus.test.junit.QuarkusTest")
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21
+        javaParameters = true
+    }
+}
