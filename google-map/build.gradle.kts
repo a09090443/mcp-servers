@@ -15,7 +15,7 @@ val quarkusPlatformVersion: String by project
 val mcpServerStdioVersion = "1.1.1"
 val googleApiClientVersion = "2.2.0"
 val googleHttpClientVersion = "1.46.3"
-val googleMapServicesVersion = "2.2.0"
+val googleCloudPlacesVersion = "0.31.0"
 
 dependencies {
     implementation(enforcedPlatform("${quarkusPlatformGroupId}:${quarkusPlatformArtifactId}:${quarkusPlatformVersion}"))
@@ -27,7 +27,12 @@ dependencies {
     implementation("com.google.api-client:google-api-client:${googleApiClientVersion}")
     implementation("com.google.http-client:google-http-client:${googleHttpClientVersion}")
     implementation("com.google.http-client:google-http-client-gson:${googleHttpClientVersion}")
-    implementation("com.google.maps:google-maps-services:$googleMapServicesVersion")
+
+    // 新版 Google Cloud Places API 客戶端庫
+    implementation("com.google.maps:google-maps-places:${googleCloudPlacesVersion}")
+
+    // Google Auth 依賴
+    implementation("com.google.auth:google-auth-library-oauth2-http:1.33.1")
 
     testImplementation("io.quarkus:quarkus-junit5")
     testImplementation("io.mockk:mockk:1.14.0")
@@ -44,6 +49,7 @@ java {
 tasks.withType<Test> {
     systemProperty("java.util.logging.manager", "org.jboss.logmanager.LogManager")
 }
+
 allOpen {
     annotation("jakarta.ws.rs.Path")
     annotation("jakarta.enterprise.context.ApplicationScoped")

@@ -1,511 +1,700 @@
 package tw.zipe.mcp.googlemap.places
 
+import com.google.api.gax.core.FixedCredentialsProvider
+import com.google.api.gax.rpc.FixedHeaderProvider
+import com.google.auth.ApiKeyCredentials
 import com.google.gson.Gson
-import com.google.maps.FindPlaceFromTextRequest
-import com.google.maps.GeoApiContext
-import com.google.maps.PlacesApi
-import com.google.maps.model.LatLng
-import com.google.maps.model.OpeningHours
-import com.google.maps.model.PlaceDetails
-import com.google.maps.model.PlaceType
-import com.google.maps.model.TravelMode
+import com.google.gson.GsonBuilder
+import com.google.maps.places.v1.AutocompletePlacesRequest
+import com.google.maps.places.v1.AutocompletePlacesResponse
+import com.google.maps.places.v1.Circle
+import com.google.maps.places.v1.GetPhotoMediaRequest
+import com.google.maps.places.v1.GetPlaceRequest
+import com.google.maps.places.v1.PhotoMedia
+import com.google.maps.places.v1.Place
+import com.google.maps.places.v1.PlacesClient
+import com.google.maps.places.v1.PlacesSettings
+import com.google.maps.places.v1.PriceLevel
+import com.google.maps.places.v1.SearchNearbyRequest
+import com.google.maps.places.v1.SearchTextRequest
+import com.google.type.LatLng
 import io.quarkiverse.mcp.server.Tool
 import io.quarkiverse.mcp.server.ToolArg
-import jakarta.enterprise.context.ApplicationScoped
-import java.util.concurrent.TimeUnit
+import io.quarkus.logging.Log
+import jakarta.annotation.PreDestroy
+import java.io.IOException
 
 /**
- * Google Maps Places API 操作封裝類
+ * Google Maps Places API (New) 操作包裝類
  */
-@ApplicationScoped
 class GoogleMapsPlacesOperations {
     companion object {
         private const val API_KEY_ENV_VAR = "GOOGLE_MAPS_API_KEY"
-        private const val DEFAULT_RADIUS = 5000
+        private const val DEFAULT_RADIUS = 5000.0
         private const val DEFAULT_MAX_RESULTS = 20
         private const val DEFAULT_LANGUAGE = "zh-TW"
         private const val DEFAULT_PHOTO_MAX_WIDTH = 800
         private const val DEFAULT_PHOTO_MAX_HEIGHT = 600
-        private const val MAPS_PHOTO_URL_BASE = "https://maps.googleapis.com/maps/api/place/photo"
 
-        private const val CONNECT_TIMEOUT_SECONDS = 10L
-        private const val READ_TIMEOUT_SECONDS = 10L
+        // 預設欄位掩碼路徑列表
+        private val DEFAULT_PLACE_FIELD_PATHS = listOf(
+            "id",
+            "displayName",
+            "formattedAddress",
+            "location",
+            "types"
+        )
 
-        private val gson = Gson()
-        private val PLACE_TYPES = PlaceType.entries.associateBy { it.name }
+        // 擴展欄位掩碼路徑列表
+        private val EXTENDED_PLACE_FIELD_PATHS = DEFAULT_PLACE_FIELD_PATHS + listOf(
+            "rating",
+            "userRatingCount",
+            "websiteUri",
+            "nationalPhoneNumber",
+            "regularOpeningHours",
+            "currentOpeningHours",
+            "googleMapsUri"
+        )
+
+        private val gson: Gson = GsonBuilder().setPrettyPrinting().create()
     }
 
-    private val geoApiContext: GeoApiContext
+    private val placesClient: PlacesClient
 
     init {
         val apiKey = System.getenv(API_KEY_ENV_VAR)
-            ?: throw IllegalArgumentException("$API_KEY_ENV_VAR environment variable is not set.")
+            ?: throw IllegalArgumentException("$API_KEY_ENV_VAR 環境變數未設定。")
 
-        geoApiContext = GeoApiContext.Builder()
-            .apiKey(apiKey)
-            .connectTimeout(CONNECT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
-            .readTimeout(READ_TIMEOUT_SECONDS, TimeUnit.SECONDS)
-            .build()
+        try {
+            // 使用 API Key 創建憑證
+            val credentials = ApiKeyCredentials.create(apiKey)
+            // 設定 Places 客戶端設置
+            val settings = PlacesSettings.newBuilder()
+                .setCredentialsProvider(FixedCredentialsProvider.create(credentials))
+                .build()
+
+            // 創建 Places 客戶端
+            placesClient = PlacesClient.create(settings)
+            Log.info("Places API 客戶端初始化成功。")
+        } catch (e: IOException) {
+            Log.error("初始化 Places API 客戶端失敗", e)
+            throw RuntimeException("初始化 Places API 客戶端失敗", e)
+        }
     }
 
-    // ======= 響應處理工具方法 =======
-
-    private fun Map<String, Any?>.toSuccessResponse(): String {
-        val responseMap = mutableMapOf<String, Any?>("success" to true)
-        responseMap.putAll(this)
-        return gson.toJson(responseMap)
+    // 當應用程式關閉時清理客戶端
+    @PreDestroy
+    fun cleanup() {
+        try {
+            placesClient.close()
+            Log.info("Places API 客戶端已關閉。")
+        } catch (e: Exception) {
+            Log.error("關閉 Places API 客戶端時出錯", e)
+        }
     }
+
+    // ======= 回應處理工具方法 =======
+
+    private fun Any.toSuccessResponse(): String =
+        when (this) {
+            is String -> this.toByteArray(Charsets.UTF_8).toString(Charsets.UTF_8)
+            else -> gson.toJson(this).toByteArray(Charsets.UTF_8).toString(Charsets.UTF_8)
+        }
 
     private fun String.toErrorResponse(data: Map<String, Any?> = emptyMap()): String {
-        val responseMap = mutableMapOf<String, Any?>("success" to false, "error" to this)
-        responseMap.putAll(data)
-        return gson.toJson(responseMap)
+        val errorMap = mutableMapOf<String, Any>(
+            "error" to true,
+            "message" to this
+        )
+        if (data.isNotEmpty()) {
+            errorMap["data"] = data
+        }
+        return gson.toJson(errorMap).toByteArray(Charsets.UTF_8).toString(Charsets.UTF_8)
     }
 
     private inline fun <T> executeWithErrorHandling(
         errorContext: Map<String, Any?> = emptyMap(),
-        operation: () -> T
+        operation: () -> T?
     ): String {
         return try {
             val result = operation()
-            when (result) {
-                is Map<*, *> -> (result as Map<String, Any?>).toSuccessResponse()
-                is String -> mapOf("result" to result).toSuccessResponse()
-                else -> mapOf("result" to result).toSuccessResponse()
-            }
+            result?.toSuccessResponse() ?: "null".toSuccessResponse()
         } catch (e: Exception) {
-            (e.message ?: "操作失敗").toErrorResponse(errorContext)
+            Log.error("操作失敗", e)
+            val message = e.message ?: "未知錯誤"
+            message.toErrorResponse(errorContext)
         }
     }
 
-    // ======= 地點搜索相關工具 =======
+    /**
+     * 建立指定欄位掩碼的Places客戶端
+     */
+    private fun createPlacesClientWithFieldMask(fields: String?, forPlaceDetails: Boolean = false): PlacesClient {
+        // 處理欄位掩碼
+        val fieldMaskString = formatFieldMask(fields, forPlaceDetails)
 
-    @Tool(description = "Search for places by text query")
-    fun searchPlaces(
-        @ToolArg(description = "Text query to search for places") query: String,
-        @ToolArg(description = "Latitude of the search center (optional)") latitude: Double? = null,
-        @ToolArg(description = "Longitude of the search center (optional)") longitude: Double? = null,
-        @ToolArg(description = "Radius in meters to search within (max 50000)") radius: Int = DEFAULT_RADIUS,
-        @ToolArg(description = "Language code (e.g., 'zh-TW', 'en')") language: String = DEFAULT_LANGUAGE,
-        @ToolArg(description = "Maximum number of results to return") maxResults: Int = DEFAULT_MAX_RESULTS
-    ): String = executeWithErrorHandling(mapOf("query" to query)) {
-        val request = PlacesApi.textSearchQuery(geoApiContext, query).language(language)
+        // 建立請求頭
+        val headers = mapOf("x-goog-fieldmask" to fieldMaskString)
+        val headerProvider = FixedHeaderProvider.create(headers)
 
-        if (latitude != null && longitude != null) {
-            request.location(LatLng(latitude, longitude)).radius(radius)
-        }
+        // 建立新的PlacesClient
+        val settings = PlacesSettings.newBuilder()
+            .setCredentialsProvider(placesClient.settings.credentialsProvider)
+            .setHeaderProvider(headerProvider)
+            .build()
 
-        val response = request.await()
-
-        val places = response.results.take(maxResults).map { place ->
-            mapOf(
-                "placeId" to place.placeId,
-                "name" to place.name,
-                "address" to place.formattedAddress,
-                "location" to mapOf(
-                    "lat" to place.geometry.location.lat,
-                    "lng" to place.geometry.location.lng
-                ),
-                "rating" to place.rating,
-                "types" to place.types
-            )
-        }
-
-        mapOf(
-            "places" to places,
-            "totalCount" to places.size,
-            "query" to query,
-            "hasMoreResults" to (response.nextPageToken != null)
-        )
+        return PlacesClient.create(settings)
     }
 
-    @Tool(description = "Get nearby places based on location and place type")
-    fun getNearbyPlaces(
-        @ToolArg(description = "Latitude of the search center") latitude: Double,
-        @ToolArg(description = "Longitude of the search center") longitude: Double,
-        @ToolArg(description = "Radius in meters to search within (max 50000)") radius: Int = DEFAULT_RADIUS,
-        @ToolArg(description = "Place type (e.g., RESTAURANT, HOSPITAL, BANK)") placeType: String? = null,
-        @ToolArg(description = "Whether the place should be open now") openNow: Boolean = false,
-        @ToolArg(description = "Keyword to filter results") keyword: String? = null,
-        @ToolArg(description = "Language code (e.g., 'zh-TW', 'en')") language: String = DEFAULT_LANGUAGE,
-        @ToolArg(description = "Maximum number of results to return") maxResults: Int = DEFAULT_MAX_RESULTS
-    ): String = executeWithErrorHandling(
-        mapOf(
-            "latitude" to latitude,
-            "longitude" to longitude,
-            "radius" to radius,
-            "placeType" to placeType
-        )
-    ) {
-        val location = LatLng(latitude, longitude)
-        val request = PlacesApi.nearbySearchQuery(geoApiContext, location)
-            .radius(radius)
-            .language(language)
-
-        if (!placeType.isNullOrBlank()) {
-            val type = PLACE_TYPES[placeType.uppercase()]
-                ?: throw IllegalArgumentException("Invalid place type: $placeType")
-            request.type(type)
-        }
-
-        if (openNow) {
-            request.openNow(true)
-        }
-
-        if (!keyword.isNullOrBlank()) {
-            request.keyword(keyword)
-        }
-
-        val response = request.await()
-
-        val places = response.results.take(maxResults).map { place ->
-            mapOf(
-                "placeId" to place.placeId,
-                "name" to place.name,
-                "address" to place.vicinity,
-                "location" to mapOf(
-                    "lat" to place.geometry.location.lat,
-                    "lng" to place.geometry.location.lng
-                ),
-                "rating" to place.rating,
-                "types" to place.types,
-                "openNow" to place.openingHours?.openNow
-            )
-        }
-
-        mapOf(
-            "places" to places,
-            "totalCount" to places.size,
-            "location" to mapOf("lat" to latitude, "lng" to longitude),
-            "radius" to radius,
-            "placeType" to placeType,
-            "hasMoreResults" to (response.nextPageToken != null)
-        )
-    }
-
-    @Tool(description = "Find place from text query with place type restriction")
-    fun findPlaceFromText(
-        @ToolArg(description = "Text input to search for place") input: String,
-        @ToolArg(description = "Input type: textQuery or phoneNumber") inputType: String = "textQuery",
-        @ToolArg(description = "Fields to include in the response (comma-separated)") fields: String = "place_id,name,formatted_address,geometry,type",
-        @ToolArg(description = "Language code (e.g., 'zh-TW', 'en')") language: String = DEFAULT_LANGUAGE
-    ): String = executeWithErrorHandling(mapOf("input" to input, "inputType" to inputType)) {
-        val inputTypeEnum = when (inputType.lowercase()) {
-            "phonenumber" -> FindPlaceFromTextRequest.InputType.PHONE_NUMBER
-            else -> FindPlaceFromTextRequest.InputType.TEXT_QUERY
-        }
-
-        val findPlaceRequest = PlacesApi.findPlaceFromText(
-            geoApiContext,
-            input,
-            inputTypeEnum
-        )
-
-        // 轉換欄位為需要的格式
-        val fieldsList = fields.split(",").map { field ->
-            try {
-                when (field.trim().lowercase()) {
-                    "place_id" -> FindPlaceFromTextRequest.FieldMask.PLACE_ID
-                    "name" -> FindPlaceFromTextRequest.FieldMask.NAME
-                    "formatted_address" -> FindPlaceFromTextRequest.FieldMask.FORMATTED_ADDRESS
-                    "geometry" -> FindPlaceFromTextRequest.FieldMask.GEOMETRY
-                    "type" -> FindPlaceFromTextRequest.FieldMask.TYPES
-                    else -> FindPlaceFromTextRequest.FieldMask.valueOf(field.trim().uppercase())
+    /**
+     * 格式化欄位掩碼
+     */
+    private fun formatFieldMask(fields: String?, forPlaceDetails: Boolean = false): String {
+        return if (!fields.isNullOrEmpty()) {
+            // 轉換欄位格式為Google API需要的格式
+            fields.split(",").joinToString(",") { field ->
+                val trimmed = field.trim()
+                if (forPlaceDetails) {
+                    // getPlaceDetails 不需要添加 "places." 前綴
+                    trimmed
+                } else {
+                    // 其他方法需要添加 "places." 前綴
+                    if (trimmed.startsWith("places.")) trimmed else "places.${trimmed}"
                 }
-            } catch (e: IllegalArgumentException) {
-                throw IllegalArgumentException("Invalid field: $field")
             }
-        }.toTypedArray()
-
-        val response = findPlaceRequest
-            .fields(*fieldsList)
-            .language(language)
-            .await()
-
-        val places = response.candidates.map { place ->
-            mapOf(
-                "placeId" to place.placeId,
-                "name" to place.name,
-                "formattedAddress" to place.formattedAddress,
-                "location" to place.geometry?.location?.let { location ->
-                    mapOf("lat" to location.lat, "lng" to location.lng)
-                },
-                "types" to place.types
-            )
+        } else {
+            // 如果未提供欄位，使用預設欄位集
+            DEFAULT_PLACE_FIELD_PATHS.joinToString(",") {
+                if (forPlaceDetails) {
+                    it
+                } else {
+                    if (it.startsWith("places.")) it else "places.$it"
+                }
+            }
         }
-
-        mapOf(
-            "places" to places,
-            "totalCount" to places.size,
-            "input" to input,
-            "inputType" to inputType
-        )
     }
 
-    // ======= 地點詳情相關工具 =======
+    // ======= 地點搜尋相關工具 =======
+    @Tool(description = "Search places using text query")
+    fun searchPlaces(
+        @ToolArg(description = "Text query to search places") query: String,
+        @ToolArg(description = "Latitude of search center (optional)") latitude: Double? = null,
+        @ToolArg(description = "Longitude of search center (optional)") longitude: Double? = null,
+        @ToolArg(description = "Search radius in meters (optional)") radius: Double? = null,
+        @ToolArg(description = "Language code (e.g. 'zh-TW', 'en')") language: String = DEFAULT_LANGUAGE,
+        @ToolArg(description = "Maximum number of results to return (max 20)") maxResults: Int = DEFAULT_MAX_RESULTS,
+        @ToolArg(description = "Whether place must be currently open (optional)") openNow: Boolean? = null,
+        @ToolArg(description = "Included place type (e.g. 'restaurant', 'hospital') (optional)") includedType: String? = null,
+        @ToolArg(description = "Minimum rating (e.g. 4.0) (optional)") minRating: Double? = null,
+        @ToolArg(description = "Price levels (comma-separated, e.g. 'MODERATE,EXPENSIVE') (optional)") priceLevels: String? = null,
+        @ToolArg(description = "Return fields (comma-separated, e.g. id,displayName,formattedAddress) (optional). Call getFieldMaskDescription() to see all available fields.") fields: String? = null
+    ): String {
+        return executeWithErrorHandling(
+            mapOf(
+                "query" to query,
+                "location" to if (latitude != null && longitude != null) "($latitude,$longitude)" else null,
+                "radius" to radius,
+                "language" to language,
+                "maxResults" to maxResults,
+                "openNow" to openNow,
+                "includedType" to includedType,
+                "minRating" to minRating,
+                "priceLevels" to priceLevels,
+                "fields" to fields
+            )
+        ) {
+            try {
+                // 建立帶欄位掩碼的臨時客戶端
+                val clientToUse = createPlacesClientWithFieldMask(fields)
 
-    @Tool(description = "Get detailed information about a place by its Place ID")
+                // 構建搜尋請求
+                val requestBuilder = SearchTextRequest.newBuilder()
+                    .setTextQuery(query)
+                    .setLanguageCode(language)
+                    .setMaxResultCount(maxResults)
+
+                // 如果提供了位置，設定坐標和半徑
+                if (latitude != null && longitude != null) {
+                    val locationBias = SearchTextRequest.LocationBias.newBuilder()
+                        .setCircle(
+                            Circle.newBuilder()
+                                .setCenter(
+                                    LatLng.newBuilder()
+                                        .setLatitude(latitude)
+                                        .setLongitude(longitude)
+                                        .build()
+                                )
+                                .setRadius(radius ?: DEFAULT_RADIUS)
+                                .build()
+                        )
+                        .build()
+                    requestBuilder.setLocationBias(locationBias)
+                }
+
+                // 如果指定了開放狀態
+                openNow?.let { requestBuilder.setOpenNow(it) }
+
+                // 如果指定了場所類型
+                if (!includedType.isNullOrEmpty()) {
+                    requestBuilder.setIncludedType(includedType)
+                }
+
+                // 如果指定了最低評分
+                minRating?.let { requestBuilder.setMinRating(it) }
+
+                // 如果指定了價格等級
+                if (!priceLevels.isNullOrEmpty()) {
+                    priceLevels.split(",").forEach { level ->
+                        when (level.trim().uppercase()) {
+                            "FREE" -> requestBuilder.addPriceLevels(PriceLevel.PRICE_LEVEL_FREE)
+                            "INEXPENSIVE" -> requestBuilder.addPriceLevels(PriceLevel.PRICE_LEVEL_INEXPENSIVE)
+                            "MODERATE" -> requestBuilder.addPriceLevels(PriceLevel.PRICE_LEVEL_MODERATE)
+                            "EXPENSIVE" -> requestBuilder.addPriceLevels(PriceLevel.PRICE_LEVEL_EXPENSIVE)
+                            "VERY_EXPENSIVE" -> requestBuilder.addPriceLevels(PriceLevel.PRICE_LEVEL_VERY_EXPENSIVE)
+                        }
+                    }
+                }
+
+                // 執行搜尋
+                val response = clientToUse.searchText(requestBuilder.build())
+
+                // 關閉臨時客戶端
+                clientToUse.close()
+
+                // 處理結果
+                val results = response.placesList.map { place ->
+                    mapOf(
+                        "id" to place.id,
+                        "name" to place.displayName?.text,
+                        "formattedAddress" to place.formattedAddress,
+                        "location" to place.location?.let {
+                            mapOf(
+                                "latitude" to it.latitude,
+                                "longitude" to it.longitude
+                            )
+                        },
+                        "types" to place.typesList,
+                        "rating" to if (place.rating != 0.0) place.rating else null,
+                        "priceLevel" to if (place.priceLevel != PriceLevel.PRICE_LEVEL_UNSPECIFIED) place.priceLevel.name else null
+                    ).filterValues { it != null }
+                }
+
+                mapOf(
+                    "results" to results,
+                    "totalResults" to response.placesList.size
+                )
+            } catch (e: Exception) {
+                Log.error("以文字搜尋地點時發生錯誤", e)
+                throw e
+            }
+        }
+    }
+
+    @Tool(description = "Get nearby places based on location")
+    fun getNearbyPlaces(
+        @ToolArg(description = "Latitude of search center") latitude: Double,
+        @ToolArg(description = "Longitude of search center") longitude: Double,
+        @ToolArg(description = "Search radius in meters") radius: Double = DEFAULT_RADIUS,
+        @ToolArg(description = "Included primary place type (e.g. 'restaurant', 'hospital') (optional)") includedPrimaryType: String? = null,
+        @ToolArg(description = "Language code (e.g. 'zh-TW', 'en')") language: String = DEFAULT_LANGUAGE,
+        @ToolArg(description = "Maximum number of results to return (max 20)") maxResults: Int = DEFAULT_MAX_RESULTS,
+        @ToolArg(description = "Ranking preference (DISTANCE or POPULARITY, default is not set)") rankPreference: String? = null,
+        @ToolArg(description = "Return fields (comma-separated, e.g. id,displayName,formattedAddress) (optional). Call getFieldMaskDescription() to see all available fields.") fields: String? = null
+    ): String {
+        return executeWithErrorHandling(
+            mapOf(
+                "location" to "($latitude,$longitude)",
+                "radius" to radius,
+                "includedPrimaryType" to includedPrimaryType,
+                "language" to language,
+                "maxResults" to maxResults,
+                "rankPreference" to rankPreference,
+                "fields" to fields
+            )
+        ) {
+            try {
+                // 建立帶欄位掩碼的臨時客戶端
+                val clientToUse = createPlacesClientWithFieldMask(fields)
+
+                // 構建搜尋請求
+                val requestBuilder = SearchNearbyRequest.newBuilder()
+                    .setLanguageCode(language)
+                    .setMaxResultCount(maxResults)
+                    .setLocationRestriction(
+                        SearchNearbyRequest.LocationRestriction.newBuilder()
+                            .setCircle(
+                                Circle.newBuilder()
+                                    .setCenter(
+                                        LatLng.newBuilder()
+                                            .setLatitude(latitude)
+                                            .setLongitude(longitude)
+                                            .build()
+                                    )
+                                    .setRadius(radius)
+                                    .build()
+                            )
+                            .build()
+                    )
+
+                // 如果指定了主要類型
+                if (!includedPrimaryType.isNullOrEmpty()) {
+                    requestBuilder.addIncludedPrimaryTypes(includedPrimaryType)
+                }
+
+                // 設定排序偏好
+                if (!rankPreference.isNullOrEmpty()) {
+                    when (rankPreference.uppercase()) {
+                        "DISTANCE" -> requestBuilder.setRankPreference(SearchNearbyRequest.RankPreference.DISTANCE)
+                        "POPULARITY" -> requestBuilder.setRankPreference(SearchNearbyRequest.RankPreference.POPULARITY)
+                    }
+                }
+
+                // 執行搜尋
+                val response = clientToUse.searchNearby(requestBuilder.build())
+
+                // 關閉臨時客戶端
+                clientToUse.close()
+
+                // 處理結果
+                val results = response.placesList.map { place ->
+                    mapOf(
+                        "id" to place.id,
+                        "name" to place.displayName?.text,
+                        "formattedAddress" to place.formattedAddress,
+                        "location" to place.location?.let {
+                            mapOf(
+                                "latitude" to it.latitude,
+                                "longitude" to it.longitude
+                            )
+                        },
+                        "types" to place.typesList
+                    ).filterValues { it != null }
+                }
+
+                mapOf(
+                    "results" to results,
+                    "totalResults" to response.placesList.size
+                )
+            } catch (e: Exception) {
+                Log.error("搜尋附近地點時發生錯誤", e)
+                throw e
+            }
+        }
+    }
+
+    @Tool(description = "Get place autocomplete suggestions")
+    fun getPlaceAutocomplete(
+        @ToolArg(description = "Text input for autocomplete") input: String,
+        @ToolArg(description = "Latitude of preferred location center (optional)") latitude: Double? = null,
+        @ToolArg(description = "Longitude of preferred location center (optional)") longitude: Double? = null,
+        @ToolArg(description = "Location preference radius in meters (optional)") radius: Double? = null,
+        @ToolArg(description = "Included primary type (e.g. 'establishment', 'geocode') (optional)") includedPrimaryType: String? = null,
+        @ToolArg(description = "Language code (e.g. 'zh-TW', 'en')") language: String = DEFAULT_LANGUAGE
+    ): String {
+        return executeWithErrorHandling(
+            mapOf(
+                "input" to input,
+                "location" to if (latitude != null && longitude != null) "($latitude,$longitude)" else null,
+                "radius" to radius,
+                "includedPrimaryType" to includedPrimaryType,
+                "language" to language
+            )
+        ) {
+            // 構建自動完成請求
+            val requestBuilder = AutocompletePlacesRequest.newBuilder()
+                .setInput(input)
+                .setLanguageCode(language)
+
+            // 如果提供了位置，設定位置偏好
+            if (latitude != null && longitude != null) {
+                val locationBias = AutocompletePlacesRequest.LocationBias.newBuilder()
+                    .setCircle(
+                        Circle.newBuilder()
+                            .setCenter(
+                                LatLng.newBuilder()
+                                    .setLatitude(latitude)
+                                    .setLongitude(longitude)
+                                    .build()
+                            )
+                            .setRadius(radius ?: DEFAULT_RADIUS)
+                            .build()
+                    )
+                    .build()
+                requestBuilder.setLocationBias(locationBias)
+            }
+
+            // 如果指定了主要類型
+            if (!includedPrimaryType.isNullOrEmpty()) {
+                requestBuilder.addIncludedPrimaryTypes(includedPrimaryType)
+            }
+
+            // 執行自動完成
+            val response = placesClient.autocompletePlaces(requestBuilder.build())
+
+            val suggestions = response.suggestionsList.map { suggestion: AutocompletePlacesResponse.Suggestion ->
+                val placePrediction = suggestion.placePrediction
+                mapOf(
+                    "placeId" to placePrediction.placeId,
+                    "text" to placePrediction.text.text,
+                    "matchedSubstrings" to placePrediction.text.matchesList.map { match ->
+                        mapOf(
+                            "start" to match.startOffset,
+                            "end" to match.endOffset
+                        )
+                    },
+                    "types" to placePrediction.typesList
+                )
+            }
+
+            mapOf(
+                "suggestions" to suggestions,
+                "totalSuggestions" to response.suggestionsList.size
+            )
+        }
+    }
+
+    @Tool(description = "Get place details by place ID")
     fun getPlaceDetails(
         @ToolArg(description = "Google Place ID") placeId: String,
-        @ToolArg(description = "Language code (e.g., 'zh-TW', 'en')") language: String = DEFAULT_LANGUAGE
-    ): String = executeWithErrorHandling<Map<String, Any?>>(mapOf("placeId" to placeId)) {
-        val place: PlaceDetails = PlacesApi.placeDetails(geoApiContext, placeId)
-            .language(language)
-            .await()
+        @ToolArg(description = "Language code (e.g. 'zh-TW', 'en')") language: String = DEFAULT_LANGUAGE,
+        @ToolArg(description = "Return fields (comma-separated, e.g. id,displayName,formattedAddress) (optional). Call getFieldMaskDescription() to see all available fields.") fields: String? = null,
+        @ToolArg(description = "Region code (e.g. 'TW', 'US')") regionCode: String? = null
+    ): String {
+        return executeWithErrorHandling(
+            mapOf(
+                "placeId" to placeId,
+                "language" to language,
+                "fields" to fields,
+                "regionCode" to regionCode
+            )
+        ) {
+            // 構建地點名稱字串，格式為 "places/YOUR_PLACE_ID"
+            val placeName = "places/$placeId"
 
-        // 創建營業時間的可讀表示
-        val openingHours = place.openingHours?.periods?.mapNotNull { period: OpeningHours.Period ->
-            val openTime = period.open?.time
-            val closeTime = period.close?.time
+            try {
+                // 建立帶欄位掩碼的臨時客戶端
+                val tempClient = createPlacesClientWithFieldMask(fields, true)
 
-            if (openTime != null && period.open != null) {
-                val day = period.open.day.name
-                "$day ${openTime}-${closeTime ?: "24:00"}"
-            } else {
-                null
+                // 構建請求
+                val requestBuilder = GetPlaceRequest.newBuilder()
+                    .setName(placeName)
+                    .setLanguageCode(language)
+
+                // 如果提供了地區代碼，則設定
+                if (!regionCode.isNullOrEmpty()) {
+                    requestBuilder.setRegionCode(regionCode)
+                }
+
+                val request = requestBuilder.build()
+
+                // 調用 Places API 客戶端的 getPlace 方法
+                val response: Place = tempClient.getPlace(request)
+
+                // 關閉臨時客戶端
+                tempClient.close()
+
+                // 將 Place 對象轉換為 Map，用於後續序列化為 JSON
+                val resultMap = mutableMapOf<String, Any?>()
+
+                // 只添加非空值到結果中
+                if (response.id.isNotEmpty()) resultMap["id"] = response.id
+                if (response.hasDisplayName()) resultMap["displayName"] = response.displayName.text
+                if (response.formattedAddress.isNotEmpty()) resultMap["formattedAddress"] = response.formattedAddress
+                if (response.hasLocation()) {
+                    resultMap["location"] = mapOf(
+                        "latitude" to response.location.latitude,
+                        "longitude" to response.location.longitude
+                    )
+                }
+                if (response.typesCount > 0) resultMap["types"] = response.typesList
+                if (response.rating != 0.0) resultMap["rating"] = response.rating
+                if (response.userRatingCount != 0) resultMap["userRatingCount"] = response.userRatingCount
+                if (response.websiteUri.isNotEmpty()) resultMap["websiteUri"] = response.websiteUri
+                if (response.nationalPhoneNumber.isNotEmpty()) resultMap["nationalPhoneNumber"] =
+                    response.nationalPhoneNumber
+                if (response.googleMapsUri.isNotEmpty()) resultMap["googleMapsUri"] = response.googleMapsUri
+                if (response.hasRegularOpeningHours()) resultMap["regularOpeningHours"] =
+                    formatOpeningHours(response.regularOpeningHours)
+                if (response.hasCurrentOpeningHours()) resultMap["currentOpeningHours"] =
+                    formatOpeningHours(response.currentOpeningHours)
+                if (response.adrFormatAddress.isNotEmpty()) resultMap["adrFormatAddress"] = response.adrFormatAddress
+                if (response.hasEditorialSummary()) resultMap["editorialSummary"] = response.editorialSummary.text
+                if (response.businessStatus != Place.BusinessStatus.BUSINESS_STATUS_UNSPECIFIED) {
+                    resultMap["businessStatus"] = response.businessStatus.name
+                }
+                if (response.priceLevel != PriceLevel.PRICE_LEVEL_UNSPECIFIED) {
+                    resultMap["priceLevel"] = response.priceLevel.name
+                }
+
+                resultMap
+            } catch (e: Exception) {
+                Log.error("獲取地點詳情失敗", e)
+                throw e
             }
         }
+    }
 
-        mapOf(
-            "placeId" to place.placeId,
-            "name" to place.name,
-            "formattedAddress" to place.formattedAddress,
-            "internationalPhoneNumber" to place.internationalPhoneNumber,
-            "rating" to place.rating,
-            "userRatingsTotal" to place.userRatingsTotal,
-            "website" to place.website?.toString(),
-            "location" to mapOf<String, Double?>(
-                "lat" to place.geometry?.location?.lat,
-                "lng" to place.geometry?.location?.lng
-            ),
-            "types" to place.types?.map { it.toString() },
-            "formattedPhoneNumber" to place.formattedPhoneNumber,
-            "openingHours" to openingHours,
-            "weekdayText" to place.openingHours?.weekdayText?.toList(),
-            "photos" to place.photos?.map { photo ->
+    // 輔助函數：格式化營業時間資訊
+    private fun formatOpeningHours(hours: Place.OpeningHours): Map<String, Any?> {
+        return mapOf(
+            "openNow" to if (hours.hasOpenNow()) hours.openNow else null,
+            "periods" to hours.periodsList.map { period ->
                 mapOf(
-                    "photoReference" to photo.photoReference,
-                    "height" to photo.height,
-                    "width" to photo.width,
-                    "attributions" to photo.htmlAttributions?.toList()
+                    "open" to period.open?.let {
+                        mapOf(
+                            "day" to it.day,
+                            "hour" to it.hour,
+                            "minute" to it.minute
+                        )
+                    },
+                    "close" to period.close?.let {
+                        mapOf(
+                            "day" to it.day,
+                            "hour" to it.hour,
+                            "minute" to it.minute
+                        )
+                    }
                 )
             },
-            "priceLevel" to place.priceLevel?.toString(),
-            "reviews" to place.reviews?.map { review ->
-                mapOf<String, Any?>(
-                    "authorName" to review.authorName,
-                    "rating" to review.rating,
-                    "text" to review.text,
-                    "time" to review.time?.toEpochMilli(),
-                    "relativeTimeDescription" to review.relativeTimeDescription
-                )
-            }
+            "weekdayDescriptions" to hours.weekdayDescriptionsList
         )
     }
 
-    @Tool(description = "Get photo URL for a Google Places photo reference")
-    fun getPlacePhotoUrl(
-        @ToolArg(description = "Place ID that the photo belongs to") placeId: String,
-        @ToolArg(description = "Photo reference from a place details result") photoReference: String,
+    @Tool(description = "Get Google Places photo")
+    fun getPlacePhoto(
+        @ToolArg(description = "Photo resource name (e.g. places/PLACE_ID/photos/PHOTO_REFERENCE)") photoName: String,
         @ToolArg(description = "Maximum width of the image") maxWidth: Int = DEFAULT_PHOTO_MAX_WIDTH,
         @ToolArg(description = "Maximum height of the image") maxHeight: Int = DEFAULT_PHOTO_MAX_HEIGHT
-    ): String = executeWithErrorHandling(mapOf("placeId" to placeId, "photoReference" to photoReference)) {
-        val apiKey = System.getenv(API_KEY_ENV_VAR)
-        val photoUrl = "https://places.googleapis.com/v1/places/$placeId/photos/$photoReference/media" +
-                "?maxHeightPx=$maxHeight" +
-                "&maxWidthPx=$maxWidth" +
-                "&key=$apiKey"
-
-        mapOf(
-            "photoUrl" to photoUrl,
-            "photoReference" to photoReference,
-            "maxWidth" to maxWidth,
-            "maxHeight" to maxHeight
-        )
-    }
-
-    // ======= 輔助工具和元數據相關 =======
-
-    @Tool(description = "Get available place types with descriptions")
-    fun getAvailablePlaceTypes(): String = executeWithErrorHandling {
-        val placeTypes = PlaceType.values().map { type ->
+    ): String {
+        return executeWithErrorHandling(
             mapOf(
-                "name" to type.name,
-                "description" to getPlaceTypeDescription(type)
+                "photoName" to photoName,
+                "maxWidth" to maxWidth,
+                "maxHeight" to maxHeight
             )
-        }
+        ) {
+            // 構建照片請求
+            val request = GetPhotoMediaRequest.newBuilder()
+                .setName(photoName)
+                .setMaxWidthPx(maxWidth)
+                .setMaxHeightPx(maxHeight)
+                .build()
 
-        mapOf(
-            "placeTypes" to placeTypes,
-            "count" to placeTypes.size
-        )
+            val response: PhotoMedia = placesClient.getPhotoMedia(request)
+
+            // 返回包含照片URI的Map
+            mapOf(
+                "name" to response.name,
+                "photoUri" to if (response.photoUri.isNotEmpty()) response.photoUri else null
+            ).filterValues { it != null }
+        }
     }
 
-    @Tool(description = "Calculate distance and duration between two locations")
-    fun calculateDistance(
-        @ToolArg(description = "Origin latitude") originLat: Double,
-        @ToolArg(description = "Origin longitude") originLng: Double,
-        @ToolArg(description = "Destination latitude") destLat: Double,
-        @ToolArg(description = "Destination longitude") destLng: Double,
-        @ToolArg(description = "Travel mode (DRIVING, WALKING, BICYCLING, TRANSIT)") mode: String = "DRIVING"
-    ): String = executeWithErrorHandling(
-        mapOf(
-            "originLat" to originLat,
-            "originLng" to originLng,
-            "destLat" to destLat,
-            "destLng" to destLng,
-            "travelMode" to mode
+    /**
+     * 獲取 Google Places API 欄位掩碼的詳細描述
+     * @return 包含所有欄位名稱及其描述的映射
+     */
+    @Tool(description = "Get detailed description of Google Places API field masks, returning a JSON object with 'fields' containing a map of field names and their descriptions")
+    fun getFieldMaskDescription(): String {
+        // 欄位名及其描述的映射
+        val fieldsMap = mapOf(
+            // Place Details Essentials IDs Only SKU 欄位
+// 歸屬資訊
+            "attributions" to "Attribution Information",
+// 地點的唯一識別符
+            "id" to "Place's Unique Identifier",
+// 地點資源名稱
+            "name" to "Place Resource Name, format: places/PLACE_ID",
+// 與地點相關的照片集
+            "photos" to "Collection of Place Photos",
+
+// Place Details Essentials SKU Fields
+// 地址的結構化組件
+            "addressComponents" to "Structured Address Components",
+// 格式化地址
+            "adrFormatAddress" to "Formatted Address",
+// 顯示為單行文字的完整地址
+            "formattedAddress" to "Complete Address as Single Line",
+// 地理坐標
+            "location" to "Geographic Coordinates (Lat/Lng)",
+// 短格式地址
+            "shortFormattedAddress" to "Short Format Address",
+// 建議的查看區域
+            "viewport" to "Suggested Viewing Area",
+
+// Place Details Pro SKU Fields
+// 無障礙設施選項
+            "accessibilityOptions" to "Accessibility Facility Options",
+// 商業運營狀態
+            "businessStatus" to "Business Operation Status",
+// 地點的顯示名稱
+            "displayName" to "Place Display Name",
+// Google Maps 連結
+            "googleMapsLinks" to "Google Maps Links (Pre-release)",
+// Google Maps URI
+            "googleMapsUri" to "Google Maps URI",
+
+// Place Details Enterprise SKU Fields
+// 國家電話號碼
+            "nationalPhoneNumber" to "National Phone Number",
+// 價格等級
+            "priceLevel" to "Price Level",
+// 價格範圍
+            "priceRange" to "Price Range",
+// 評分
+            "rating" to "Rating Score",
+// 常規營業時間
+            "regularOpeningHours" to "Regular Business Hours",
+// 常規次要營業時間
+            "regularSecondaryOpeningHours" to "Secondary Regular Business Hours",
+// 用戶評分數量
+            "userRatingCount" to "Number of User Ratings",
+// 網站 URI
+            "websiteUri" to "Website URI",
+
+// Place Details Enterprise + Atmosphere SKU Fields
+// 是否允許攜帶狗
+            "allowsDogs" to "Dogs Allowed",
+// 是否提供堂食服務
+            "dineIn" to "Dine-in Service Available",
+// 編輯摘要
+            "editorialSummary" to "Editorial Summary",
+// 是否適合兒童
+            "goodForChildren" to "Child-friendly",
+// 是否適合團體
+            "goodForGroups" to "Group-friendly",
+// 是否有兒童菜單
+            "menuForChildren" to "Children's Menu Available",
+// 停車選項
+            "parkingOptions" to "Parking Options",
+// 是否提供戶外座位
+            "outdoorSeating" to "Outdoor Seating Available",
+// 是否可預訂
+            "reservable" to "Accepts Reservations",
+// 是否有洗手間
+            "restroom" to "Restroom Available",
+// 評論
+            "reviews" to "Reviews",
+// 路線摘要
+            "routingSummaries" to "Route Summaries (Text/Nearby Search Only)",
+// 是否提供早餐
+            "servesBreakfast" to "Serves Breakfast",
+// 是否提供早午餐
+            "servesBrunch" to "Serves Brunch",
+// 是否提供咖啡
+            "servesCoffee" to "Serves Coffee",
+// 是否提供甜點
+            "servesDessert" to "Serves Dessert",
+// 是否提供晚餐
+            "servesDinner" to "Serves Dinner",
+// 是否提供午餐
+            "servesLunch" to "Serves Lunch",
+// 是否提供素食
+            "servesVegetarianFood" to "Serves Vegetarian Food",
+// 是否提供外帶服務
+            "takeout" to "Takeout Available"
         )
-    ) {
-        // 驗證旅行模式
-        val travelMode = try {
-            TravelMode.valueOf(mode.uppercase())
-        } catch (e: IllegalArgumentException) {
-            throw IllegalArgumentException("無效的出行模式: $mode。可用模式: ${TravelMode.values().joinToString()}")
-        }
 
-        // 準備座標
-        val origin = LatLng(originLat, originLng)
-        val destination = LatLng(destLat, destLng)
-
-        // 發送請求
-        val request = com.google.maps.DistanceMatrixApi.newRequest(geoApiContext)
-            .origins(origin)
-            .destinations(destination)
-            .mode(travelMode)
-            .language(DEFAULT_LANGUAGE)
-
-        val response = request.await()
-
-        // 檢查響應是否有效
-        if (response.rows.isEmpty() || response.rows[0].elements.isEmpty()) {
-            throw IllegalStateException("找不到指定位置間的路線")
-        }
-
-        // 獲取行程元素
-        val element = response.rows[0].elements[0]
-
-        // 檢查行程狀態
-        if (element.status != com.google.maps.model.DistanceMatrixElementStatus.OK) {
-            throw IllegalStateException("無法計算距離: ${element.status}")
-        }
-
-        // 構建成功響應
-        mapOf(
-            "distance" to mapOf(
-                "value" to element.distance.inMeters,
-                "text" to element.distance.humanReadable
-            ),
-            "duration" to mapOf(
-                "value" to element.duration.inSeconds,
-                "text" to element.duration.humanReadable
-            ),
-            "origin" to mapOf("lat" to originLat, "lng" to originLng),
-            "destination" to mapOf("lat" to destLat, "lng" to destLng),
-            "travelMode" to travelMode.name
-        )
-    }
-
-    // 地點類型描述映射
-    private fun getPlaceTypeDescription(placeType: PlaceType): String {
-        return when (placeType) {
-            PlaceType.ACCOUNTING -> "會計服務"
-            PlaceType.AIRPORT -> "機場"
-            PlaceType.AMUSEMENT_PARK -> "遊樂園"
-            PlaceType.AQUARIUM -> "水族館"
-            PlaceType.ART_GALLERY -> "藝術畫廊"
-            PlaceType.ATM -> "自動提款機"
-            PlaceType.BAKERY -> "麵包店"
-            PlaceType.BANK -> "銀行"
-            PlaceType.BAR -> "酒吧"
-            PlaceType.BEAUTY_SALON -> "美容院"
-            PlaceType.BICYCLE_STORE -> "自行車店"
-            PlaceType.BOOK_STORE -> "書店"
-            PlaceType.BOWLING_ALLEY -> "保齡球館"
-            PlaceType.BUS_STATION -> "公車站"
-            PlaceType.CAFE -> "咖啡廳"
-            PlaceType.CAMPGROUND -> "露營地"
-            PlaceType.CAR_DEALER -> "汽車經銷商"
-            PlaceType.CAR_RENTAL -> "租車服務"
-            PlaceType.CAR_REPAIR -> "汽車修理"
-            PlaceType.CAR_WASH -> "洗車服務"
-            PlaceType.CASINO -> "賭場"
-            PlaceType.CEMETERY -> "墓園"
-            PlaceType.CHURCH -> "教堂"
-            PlaceType.CITY_HALL -> "市政廳"
-            PlaceType.CLOTHING_STORE -> "服裝店"
-            PlaceType.CONVENIENCE_STORE -> "便利商店"
-            PlaceType.COURTHOUSE -> "法院"
-            PlaceType.DENTIST -> "牙醫"
-            PlaceType.DEPARTMENT_STORE -> "百貨公司"
-            PlaceType.DOCTOR -> "醫生"
-            PlaceType.DRUGSTORE -> "藥店"
-            PlaceType.ELECTRICIAN -> "電工"
-            PlaceType.ELECTRONICS_STORE -> "電子產品商店"
-            PlaceType.EMBASSY -> "大使館"
-            PlaceType.FIRE_STATION -> "消防局"
-            PlaceType.FLORIST -> "花店"
-            PlaceType.FUNERAL_HOME -> "殯儀館"
-            PlaceType.FURNITURE_STORE -> "家具店"
-            PlaceType.GAS_STATION -> "加油站"
-            PlaceType.GYM -> "健身房"
-            PlaceType.HAIR_CARE -> "美髮沙龍"
-            PlaceType.HARDWARE_STORE -> "五金店"
-            PlaceType.HINDU_TEMPLE -> "印度廟"
-            PlaceType.HOME_GOODS_STORE -> "家居用品店"
-            PlaceType.HOSPITAL -> "醫院"
-            PlaceType.INSURANCE_AGENCY -> "保險公司"
-            PlaceType.JEWELRY_STORE -> "珠寶店"
-            PlaceType.LAUNDRY -> "洗衣店"
-            PlaceType.LAWYER -> "律師事務所"
-            PlaceType.LIBRARY -> "圖書館"
-            PlaceType.LIGHT_RAIL_STATION -> "輕軌站"
-            PlaceType.LIQUOR_STORE -> "酒類商店"
-            PlaceType.LOCAL_GOVERNMENT_OFFICE -> "地方政府辦公室"
-            PlaceType.LOCKSMITH -> "鎖匠"
-            PlaceType.LODGING -> "住宿"
-            PlaceType.MEAL_DELIVERY -> "餐飲外送"
-            PlaceType.MEAL_TAKEAWAY -> "餐飲外帶"
-            PlaceType.MOSQUE -> "清真寺"
-            PlaceType.MOVIE_RENTAL -> "電影租賃"
-            PlaceType.MOVIE_THEATER -> "電影院"
-            PlaceType.MOVING_COMPANY -> "搬家公司"
-            PlaceType.MUSEUM -> "博物館"
-            PlaceType.NIGHT_CLUB -> "夜店"
-            PlaceType.PAINTER -> "油漆工"
-            PlaceType.PARK -> "公園"
-            PlaceType.PARKING -> "停車場"
-            PlaceType.PET_STORE -> "寵物店"
-            PlaceType.PHARMACY -> "藥局"
-            PlaceType.PHYSIOTHERAPIST -> "物理治療師"
-            PlaceType.PLUMBER -> "水管工"
-            PlaceType.POLICE -> "警察局"
-            PlaceType.POST_OFFICE -> "郵局"
-            PlaceType.PRIMARY_SCHOOL -> "小學"
-            PlaceType.REAL_ESTATE_AGENCY -> "房地產經紀公司"
-            PlaceType.RESTAURANT -> "餐廳"
-            PlaceType.ROOFING_CONTRACTOR -> "屋頂承包商"
-            PlaceType.RV_PARK -> "露營車公園"
-            PlaceType.SCHOOL -> "學校"
-            PlaceType.SECONDARY_SCHOOL -> "中學"
-            PlaceType.SHOE_STORE -> "鞋店"
-            PlaceType.SHOPPING_MALL -> "購物中心"
-            PlaceType.SPA -> "水療中心"
-            PlaceType.STADIUM -> "體育場"
-            PlaceType.STORAGE -> "倉儲"
-            PlaceType.STORE -> "商店"
-            PlaceType.SUBWAY_STATION -> "地鐵站"
-            PlaceType.SUPERMARKET -> "超市"
-            PlaceType.SYNAGOGUE -> "猶太教堂"
-            PlaceType.TAXI_STAND -> "計程車站"
-            PlaceType.TOURIST_ATTRACTION -> "旅遊景點"
-            PlaceType.TRAIN_STATION -> "火車站"
-            PlaceType.TRANSIT_STATION -> "交通站"
-            PlaceType.TRAVEL_AGENCY -> "旅行社"
-            PlaceType.UNIVERSITY -> "大學"
-            PlaceType.VETERINARY_CARE -> "獸醫"
-            PlaceType.ZOO -> "動物園"
-            else -> "其他類型"
-        }
+        return gson.toJson(mapOf("fields" to fieldsMap))
     }
 }
