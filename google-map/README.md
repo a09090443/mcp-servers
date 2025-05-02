@@ -1,6 +1,7 @@
 # Google Maps MCP 服務器
 
 此 MCP 服務器提供與 Google Maps 整合的功能，允許您搜索地點、獲取位置詳情、計算距離等操作，豐富 LLM 應用的地理和位置服務能力。
+- 目前 Quarkus mcp server lib 有編碼上的問題，導致 llm 取得的 response 會有亂碼，已提交問題，看看會不會修
 
 ## 功能列表
 
