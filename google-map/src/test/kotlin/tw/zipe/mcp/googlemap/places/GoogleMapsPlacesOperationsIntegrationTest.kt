@@ -51,16 +51,16 @@ class GoogleMapsPlacesOperationsIntegrationTest {
 
         // 執行
         val result = placesOperations.searchPlaces(
-            query = "咖啡廳 三芝",
+            query = "咖啡廳",
             latitude = latitude,
             longitude = longitude,
-            radius = 2000.0,
+            radius = 5000.0,
             language = "zh-TW",
             maxResults = 10,
             openNow = false,
             includedType = "cafe",
             minRating = 0.0,
-            fields = "id,displayName,formattedAddress,rating,userRatingCount,regularOpeningHours,websiteUri,photos"
+            fields = "id,displayName,formattedAddress,rating,userRatingCount,regularOpeningHours"
         )
         val jsonObject = JsonParser.parseString(result).asJsonObject
 
@@ -71,7 +71,7 @@ class GoogleMapsPlacesOperationsIntegrationTest {
         assertFalse(places.isEmpty)
     }
 
-//    @Test
+    @Test
     fun `searchPlaces should handle includedType parameter`() {
         // 執行
         val result = placesOperations.searchPlaces(
@@ -88,7 +88,7 @@ class GoogleMapsPlacesOperationsIntegrationTest {
         assertFalse(places.isEmpty)
     }
 
-//    @Test
+    @Test
     fun `searchPlaces should handle priceLevel parameter`() {
         // 執行
         val result = placesOperations.searchPlaces(
@@ -102,7 +102,7 @@ class GoogleMapsPlacesOperationsIntegrationTest {
         assertTrue(jsonObject.has("results"))
     }
 
-//    @Test
+    @Test
     fun `getNearbyPlaces should return places near given location`() {
         // 台北市座標
         val latitude = 25.033
@@ -126,7 +126,7 @@ class GoogleMapsPlacesOperationsIntegrationTest {
         assertFalse(places.isEmpty)
     }
 
-//    @Test
+    @Test
     fun `getNearbyPlaces should handle rankPreference parameter`() {
         // 台北市座標
         val latitude = 25.033
@@ -146,7 +146,7 @@ class GoogleMapsPlacesOperationsIntegrationTest {
         assertTrue(jsonObject.has("results"))
     }
 
-//    @Test
+    @Test
     fun `getPlaceAutocomplete should return suggestions for input`() {
         // 執行
         val result = placesOperations.getPlaceAutocomplete("台北1")
@@ -159,7 +159,7 @@ class GoogleMapsPlacesOperationsIntegrationTest {
         assertFalse(suggestions.isEmpty)
     }
 
-//    @Test
+    @Test
     fun `getPlaceAutocomplete should handle location bias`() {
         // 台北市座標
         val latitude = 25.033
@@ -179,7 +179,7 @@ class GoogleMapsPlacesOperationsIntegrationTest {
         assertTrue(jsonObject.has("suggestions"))
     }
 
-//    @Test
+    @Test
     fun `getPlaceAutocomplete should handle includedPrimaryType parameter`() {
         // 執行
         val result = placesOperations.getPlaceAutocomplete(
@@ -193,7 +193,7 @@ class GoogleMapsPlacesOperationsIntegrationTest {
         assertTrue(jsonObject.has("suggestions"))
     }
 
-//    @Test
+    @Test
     fun `getPlaceDetails should return details for valid placeId`() {
         // 先通過搜索獲取有效的placeId
         val searchResult = placesOperations.searchPlaces("台北101")
@@ -210,8 +210,7 @@ class GoogleMapsPlacesOperationsIntegrationTest {
         assertNotNull(placeId, "無法獲取有效的placeId")
 
         // 執行
-        val result =
-            placesOperations.getPlaceDetails(placeId, fields = "id,displayName,formattedAddress,location,types")
+        val result = placesOperations.getPlaceDetails(placeId)
         val jsonObject = JsonParser.parseString(result).asJsonObject
 
         // 驗證
@@ -240,8 +239,7 @@ class GoogleMapsPlacesOperationsIntegrationTest {
 
         // 執行，請求擴展欄位
         val result = placesOperations.getPlaceDetails(
-            placeId,
-            fields = "id,displayName,formattedAddress,rating,websiteUri,nationalPhoneNumber"
+            placeId
         )
         val jsonObject = JsonParser.parseString(result).asJsonObject
 
@@ -256,7 +254,7 @@ class GoogleMapsPlacesOperationsIntegrationTest {
         assertTrue(hasExtendedField)
     }
 
-//    @Test
+    @Test
     fun `getPlacePhoto should return photo URL`() {
         // 先通過搜索獲取一個有效的placeId
         val searchResult = placesOperations.searchPlaces("台北101")
@@ -272,7 +270,7 @@ class GoogleMapsPlacesOperationsIntegrationTest {
         val placeId = searchJson.getAsJsonArray("results")[0].asJsonObject.get("id").asString
 
         // 獲取地點詳情，包含照片
-        val detailsResult = placesOperations.getPlaceDetails(placeId, fields = "id,photos")
+        val detailsResult = placesOperations.getPlaceDetails(placeId)
         val detailsJson = JsonParser.parseString(detailsResult).asJsonObject
 
         // 檢查是否有照片
@@ -281,8 +279,9 @@ class GoogleMapsPlacesOperationsIntegrationTest {
             return
         }
 
+        val photos = detailsJson.getAsJsonArray("photos")
         // 獲取第一張照片的名稱
-        val photoName = detailsJson.getAsJsonArray("photos")[0].asJsonObject.get("name").asString
+        val photoName = photos[0].asJsonObject.get("name").asString
 
         // 執行
         val photoResult = placesOperations.getPlacePhoto(photoName, 600, 400)

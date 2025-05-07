@@ -56,7 +56,8 @@ class GoogleMapsPlacesOperations {
             "googleMapsUri"
         )
 
-        private val gson: Gson = GsonBuilder().setPrettyPrinting().create()
+        private val gson: Gson =
+            GsonBuilder().setFieldNamingStrategy(RemoveTrailingUnderscoreNamingStrategy()).setPrettyPrinting().create()
     }
 
     private val placesClient: PlacesClient
@@ -147,34 +148,44 @@ class GoogleMapsPlacesOperations {
     }
 
     /**
-     * 格式化欄位掩碼
+     * 格式化欄位掩碼為Google API需要的格式
+     * @param fields 用戶提供的欄位列表，以逗號分隔
+     * @param forPlaceDetails 是否用於getPlaceDetails呼叫
+     * @return 格式化後的欄位掩碼字串
      */
     private fun formatFieldMask(fields: String?, forPlaceDetails: Boolean = false): String {
-        return if (!fields.isNullOrEmpty()) {
-            // 轉換欄位格式為Google API需要的格式
-            fields.split(",").joinToString(",") { field ->
-                val trimmed = field.trim()
-                if (forPlaceDetails) {
-                    // getPlaceDetails 不需要添加 "places." 前綴
-                    trimmed
-                } else {
-                    // 其他方法需要添加 "places." 前綴
-                    if (trimmed.startsWith("places.")) trimmed else "places.${trimmed}"
-                }
-            }
+        // 確定要處理的欄位列表
+        val fieldList = if (!fields.isNullOrEmpty()) {
+            fields.split(",").map { it.trim() }
         } else {
-            // 如果未提供欄位，使用預設欄位集
-            DEFAULT_PLACE_FIELD_PATHS.joinToString(",") {
-                if (forPlaceDetails) {
-                    it
-                } else {
-                    if (it.startsWith("places.")) it else "places.$it"
-                }
-            }
+            DEFAULT_PLACE_FIELD_PATHS
+        }
+
+        // 根據需要添加前綴並合併為字串
+        return fieldList.joinToString(",") { field ->
+            addPlacesPrefix(field, forPlaceDetails)
         }
     }
 
-    // ======= 地點搜尋相關工具 =======
+    /**
+     * 根據情況為欄位添加"places."前綴
+     * @param field 欄位名稱
+     * @param forPlaceDetails 是否用於getPlaceDetails呼叫
+     * @return 處理後的欄位名稱
+     */
+    private fun addPlacesPrefix(field: String, forPlaceDetails: Boolean): String {
+        // getPlaceDetails 不需要添加前綴
+        if (forPlaceDetails) {
+            return field
+        }
+
+        // 其他方法需要確保有"places."前綴
+        return if (field.startsWith("places.")) field else "places.$field"
+    }
+
+    /**
+     * 搜尋地點
+     */
     @Tool(description = "Search places using text query")
     fun searchPlaces(
         @ToolArg(description = "Text query to search places") query: String,
@@ -457,20 +468,20 @@ class GoogleMapsPlacesOperations {
     fun getPlaceDetails(
         @ToolArg(description = "Google Place ID") placeId: String,
         @ToolArg(description = "Language code (e.g. 'zh-TW', 'en')") language: String = DEFAULT_LANGUAGE,
-        @ToolArg(description = "Return fields (comma-separated, e.g. id,displayName,formattedAddress) (optional). Call getFieldMaskDescription() to see all available fields.") fields: String? = null,
         @ToolArg(description = "Region code (e.g. 'TW', 'US')") regionCode: String? = null
     ): String {
         return executeWithErrorHandling(
             mapOf(
                 "placeId" to placeId,
                 "language" to language,
-                "fields" to fields,
                 "regionCode" to regionCode
             )
         ) {
             // 構建地點名稱字串，格式為 "places/YOUR_PLACE_ID"
             val placeName = "places/$placeId"
 
+            val fields =
+                "id,nationalPhoneNumber,internationalPhoneNumber,formattedAddress,location,googleMapsUri,regularOpeningHours,regularOpeningHours,userRatingCount,displayName,reviews,photos,googleMapsLinks"
             try {
                 // 建立帶欄位掩碼的臨時客戶端
                 val tempClient = createPlacesClientWithFieldMask(fields, true)
@@ -492,72 +503,32 @@ class GoogleMapsPlacesOperations {
 
                 // 關閉臨時客戶端
                 tempClient.close()
-
-                // 將 Place 對象轉換為 Map，用於後續序列化為 JSON
-                val resultMap = mutableMapOf<String, Any?>()
-
-                // 只添加非空值到結果中
-                if (response.id.isNotEmpty()) resultMap["id"] = response.id
-                if (response.hasDisplayName()) resultMap["displayName"] = response.displayName.text
-                if (response.formattedAddress.isNotEmpty()) resultMap["formattedAddress"] = response.formattedAddress
-                if (response.hasLocation()) {
-                    resultMap["location"] = mapOf(
-                        "latitude" to response.location.latitude,
-                        "longitude" to response.location.longitude
-                    )
-                }
-                if (response.typesCount > 0) resultMap["types"] = response.typesList
-                if (response.rating != 0.0) resultMap["rating"] = response.rating
-                if (response.userRatingCount != 0) resultMap["userRatingCount"] = response.userRatingCount
-                if (response.websiteUri.isNotEmpty()) resultMap["websiteUri"] = response.websiteUri
-                if (response.nationalPhoneNumber.isNotEmpty()) resultMap["nationalPhoneNumber"] =
-                    response.nationalPhoneNumber
-                if (response.googleMapsUri.isNotEmpty()) resultMap["googleMapsUri"] = response.googleMapsUri
-                if (response.hasRegularOpeningHours()) resultMap["regularOpeningHours"] =
-                    formatOpeningHours(response.regularOpeningHours)
-                if (response.hasCurrentOpeningHours()) resultMap["currentOpeningHours"] =
-                    formatOpeningHours(response.currentOpeningHours)
-                if (response.adrFormatAddress.isNotEmpty()) resultMap["adrFormatAddress"] = response.adrFormatAddress
-                if (response.hasEditorialSummary()) resultMap["editorialSummary"] = response.editorialSummary.text
-                if (response.businessStatus != Place.BusinessStatus.BUSINESS_STATUS_UNSPECIFIED) {
-                    resultMap["businessStatus"] = response.businessStatus.name
-                }
-                if (response.priceLevel != PriceLevel.PRICE_LEVEL_UNSPECIFIED) {
-                    resultMap["priceLevel"] = response.priceLevel.name
+                val json = gson.toJson(response)
+                val resultMap = gson.fromJson<Map<String, Any?>>(
+                    json,
+                    object : com.google.gson.reflect.TypeToken<Map<String, Any?>>() {}.type
+                )
+                val filteredMap = resultMap.filterValues { value ->
+                    when (value) {
+                        null -> false
+                        is String -> value.isNotEmpty()
+                        is Map<*, *> -> value.isNotEmpty()
+                        is Collection<*> -> value.isNotEmpty()
+                        is Number -> when (value) {
+                            is Double -> value != 0.0
+                            is Int, is Long -> value != 0
+                            else -> true
+                        }
+                        else -> true
+                    }
                 }
 
-                resultMap
+                filteredMap
             } catch (e: Exception) {
                 Log.error("獲取地點詳情失敗", e)
                 throw e
             }
         }
-    }
-
-    // 輔助函數：格式化營業時間資訊
-    private fun formatOpeningHours(hours: Place.OpeningHours): Map<String, Any?> {
-        return mapOf(
-            "openNow" to if (hours.hasOpenNow()) hours.openNow else null,
-            "periods" to hours.periodsList.map { period ->
-                mapOf(
-                    "open" to period.open?.let {
-                        mapOf(
-                            "day" to it.day,
-                            "hour" to it.hour,
-                            "minute" to it.minute
-                        )
-                    },
-                    "close" to period.close?.let {
-                        mapOf(
-                            "day" to it.day,
-                            "hour" to it.hour,
-                            "minute" to it.minute
-                        )
-                    }
-                )
-            },
-            "weekdayDescriptions" to hours.weekdayDescriptionsList
-        )
     }
 
     @Tool(description = "Get Google Places photo")
@@ -575,7 +546,7 @@ class GoogleMapsPlacesOperations {
         ) {
             // 構建照片請求
             val request = GetPhotoMediaRequest.newBuilder()
-                .setName(photoName)
+                .setName("$photoName/media")
                 .setMaxWidthPx(maxWidth)
                 .setMaxHeightPx(maxHeight)
                 .build()
@@ -599,99 +570,99 @@ class GoogleMapsPlacesOperations {
         // 欄位名及其描述的映射
         val fieldsMap = mapOf(
             // Place Details Essentials IDs Only SKU 欄位
-// 歸屬資訊
+            // 歸屬資訊
             "attributions" to "Attribution Information",
-// 地點的唯一識別符
+            // 地點的唯一識別符
             "id" to "Place's Unique Identifier",
-// 地點資源名稱
+            // 地點資源名稱
             "name" to "Place Resource Name, format: places/PLACE_ID",
-// 與地點相關的照片集
+            // 與地點相關的照片集
             "photos" to "Collection of Place Photos",
 
-// Place Details Essentials SKU Fields
-// 地址的結構化組件
+            // Place Details Essentials SKU Fields
+            // 地址的結構化組件
             "addressComponents" to "Structured Address Components",
-// 格式化地址
+            // 格式化地址
             "adrFormatAddress" to "Formatted Address",
-// 顯示為單行文字的完整地址
+            // 顯示為單行文字的完整地址
             "formattedAddress" to "Complete Address as Single Line",
-// 地理坐標
+            // 地理坐標
             "location" to "Geographic Coordinates (Lat/Lng)",
-// 短格式地址
+            // 短格式地址
             "shortFormattedAddress" to "Short Format Address",
-// 建議的查看區域
+            // 建議的查看區域
             "viewport" to "Suggested Viewing Area",
 
-// Place Details Pro SKU Fields
-// 無障礙設施選項
+            // Place Details Pro SKU Fields
+            // 無障礙設施選項
             "accessibilityOptions" to "Accessibility Facility Options",
-// 商業運營狀態
+            // 商業運營狀態
             "businessStatus" to "Business Operation Status",
-// 地點的顯示名稱
+            // 地點的顯示名稱
             "displayName" to "Place Display Name",
-// Google Maps 連結
+            // Google Maps 連結
             "googleMapsLinks" to "Google Maps Links (Pre-release)",
-// Google Maps URI
+            // Google Maps URI
             "googleMapsUri" to "Google Maps URI",
 
-// Place Details Enterprise SKU Fields
-// 國家電話號碼
+            // Place Details Enterprise SKU Fields
+            // 國家電話號碼
             "nationalPhoneNumber" to "National Phone Number",
-// 價格等級
+            // 價格等級
             "priceLevel" to "Price Level",
-// 價格範圍
+            // 價格範圍
             "priceRange" to "Price Range",
-// 評分
+            // 評分
             "rating" to "Rating Score",
-// 常規營業時間
+            // 常規營業時間
             "regularOpeningHours" to "Regular Business Hours",
-// 常規次要營業時間
+            // 常規次要營業時間
             "regularSecondaryOpeningHours" to "Secondary Regular Business Hours",
-// 用戶評分數量
+            // 用戶評分數量
             "userRatingCount" to "Number of User Ratings",
-// 網站 URI
+            // 網站 URI
             "websiteUri" to "Website URI",
 
-// Place Details Enterprise + Atmosphere SKU Fields
-// 是否允許攜帶狗
+            // Place Details Enterprise + Atmosphere SKU Fields
+            // 是否允許攜帶狗
             "allowsDogs" to "Dogs Allowed",
-// 是否提供堂食服務
+            // 是否提供堂食服務
             "dineIn" to "Dine-in Service Available",
-// 編輯摘要
+            // 編輯摘要
             "editorialSummary" to "Editorial Summary",
-// 是否適合兒童
+            // 是否適合兒童
             "goodForChildren" to "Child-friendly",
-// 是否適合團體
+            // 是否適合團體
             "goodForGroups" to "Group-friendly",
-// 是否有兒童菜單
+            // 是否有兒童菜單
             "menuForChildren" to "Children's Menu Available",
-// 停車選項
+            // 停車選項
             "parkingOptions" to "Parking Options",
-// 是否提供戶外座位
+            // 是否提供戶外座位
             "outdoorSeating" to "Outdoor Seating Available",
-// 是否可預訂
+            // 是否可預訂
             "reservable" to "Accepts Reservations",
-// 是否有洗手間
+            // 是否有洗手間
             "restroom" to "Restroom Available",
-// 評論
+            // 評論
             "reviews" to "Reviews",
-// 路線摘要
+            // 路線摘要
             "routingSummaries" to "Route Summaries (Text/Nearby Search Only)",
-// 是否提供早餐
+            // 是否提供早餐
             "servesBreakfast" to "Serves Breakfast",
-// 是否提供早午餐
+            // 是否提供早午餐
             "servesBrunch" to "Serves Brunch",
-// 是否提供咖啡
+            // 是否提供咖啡
             "servesCoffee" to "Serves Coffee",
-// 是否提供甜點
+            // 是否提供甜點
             "servesDessert" to "Serves Dessert",
-// 是否提供晚餐
+            // 是否提供晚餐
             "servesDinner" to "Serves Dinner",
-// 是否提供午餐
+            // 是否提供午餐
             "servesLunch" to "Serves Lunch",
-// 是否提供素食
+            // 是否提供素食
             "servesVegetarianFood" to "Serves Vegetarian Food",
-// 是否提供外帶服務
+            // 是否提供外帶服務
             "takeout" to "Takeout Available"
         )
 
