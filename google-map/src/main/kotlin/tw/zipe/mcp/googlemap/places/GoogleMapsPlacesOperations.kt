@@ -189,16 +189,16 @@ class GoogleMapsPlacesOperations {
     @Tool(description = "Search places using text query")
     fun searchPlaces(
         @ToolArg(description = "Text query to search places") query: String,
-        @ToolArg(description = "Latitude of search center (optional)") latitude: Double? = null,
-        @ToolArg(description = "Longitude of search center (optional)") longitude: Double? = null,
-        @ToolArg(description = "Search radius in meters (optional)") radius: Double? = null,
+        @ToolArg(description = "Latitude of search center", required = false) latitude: Double? = null,
+        @ToolArg(description = "Longitude of search center", required = false) longitude: Double? = null,
+        @ToolArg(description = "Search radius in meters", required = false) radius: Double = 500.0,
         @ToolArg(description = "Language code (e.g. 'zh-TW', 'en')") language: String = DEFAULT_LANGUAGE,
         @ToolArg(description = "Maximum number of results to return (max 20)") maxResults: Int = DEFAULT_MAX_RESULTS,
-        @ToolArg(description = "Whether place must be currently open (optional)") openNow: Boolean? = null,
-        @ToolArg(description = "Included place type (e.g. 'restaurant', 'hospital') (optional)") includedType: String? = null,
-        @ToolArg(description = "Minimum rating (e.g. 4.0) (optional)") minRating: Double? = null,
-        @ToolArg(description = "Price levels (comma-separated, e.g. 'MODERATE,EXPENSIVE') (optional)") priceLevels: String? = null,
-        @ToolArg(description = "Return fields (comma-separated, e.g. id,displayName,formattedAddress) (optional). Call getFieldMaskDescription() to see all available fields.") fields: String? = null
+        @ToolArg(description = "Whether place must be currently open", required = false) openNow: Boolean? = null,
+        @ToolArg(description = "Included place type (e.g. 'restaurant', 'hospital')", required = false) includedType: String? = null,
+        @ToolArg(description = "Minimum rating (e.g. 4.0)", required = false) minRating: Double? = null,
+        @ToolArg(description = "Price levels (comma-separated, e.g. 'MODERATE,EXPENSIVE')", required = false) priceLevels: String? = null,
+        @ToolArg(description = "Return fields (comma-separated, e.g. id,displayName,formattedAddress). Call getFieldMaskDescription() to see all available fields.", required = false) fields: String? = null
     ): String {
         return executeWithErrorHandling(
             mapOf(
@@ -306,11 +306,11 @@ class GoogleMapsPlacesOperations {
         @ToolArg(description = "Latitude of search center") latitude: Double,
         @ToolArg(description = "Longitude of search center") longitude: Double,
         @ToolArg(description = "Search radius in meters") radius: Double = DEFAULT_RADIUS,
-        @ToolArg(description = "Included primary place type (e.g. 'restaurant', 'hospital') (optional)") includedPrimaryType: String? = null,
+        @ToolArg(description = "Included primary place type (e.g. 'restaurant', 'hospital')", required = false) includedPrimaryType: String? = null,
         @ToolArg(description = "Language code (e.g. 'zh-TW', 'en')") language: String = DEFAULT_LANGUAGE,
         @ToolArg(description = "Maximum number of results to return (max 20)") maxResults: Int = DEFAULT_MAX_RESULTS,
-        @ToolArg(description = "Ranking preference (DISTANCE or POPULARITY, default is not set)") rankPreference: String? = null,
-        @ToolArg(description = "Return fields (comma-separated, e.g. id,displayName,formattedAddress) (optional). Call getFieldMaskDescription() to see all available fields.") fields: String? = null
+        @ToolArg(description = "Ranking preference (DISTANCE or POPULARITY, default is not set)", required = false) rankPreference: String? = null,
+        @ToolArg(description = "Return fields (comma-separated, e.g. id,displayName,formattedAddress). Call getFieldMaskDescription() to see all available fields.", required = false) fields: String? = null
     ): String {
         return executeWithErrorHandling(
             mapOf(
@@ -396,10 +396,10 @@ class GoogleMapsPlacesOperations {
     @Tool(description = "Get place autocomplete suggestions")
     fun getPlaceAutocomplete(
         @ToolArg(description = "Text input for autocomplete") input: String,
-        @ToolArg(description = "Latitude of preferred location center (optional)") latitude: Double? = null,
-        @ToolArg(description = "Longitude of preferred location center (optional)") longitude: Double? = null,
-        @ToolArg(description = "Location preference radius in meters (optional)") radius: Double? = null,
-        @ToolArg(description = "Included primary type (e.g. 'establishment', 'geocode') (optional)") includedPrimaryType: String? = null,
+        @ToolArg(description = "Latitude of preferred location center", required = false) latitude: Double? = null,
+        @ToolArg(description = "Longitude of preferred location center", required = false) longitude: Double? = null,
+        @ToolArg(description = "Location preference radius in meters", required = false) radius: Double? = null,
+        @ToolArg(description = "Included primary type (e.g. 'establishment', 'geocode')", required = false) includedPrimaryType: String? = null,
         @ToolArg(description = "Language code (e.g. 'zh-TW', 'en')") language: String = DEFAULT_LANGUAGE
     ): String {
         return executeWithErrorHandling(
@@ -468,7 +468,7 @@ class GoogleMapsPlacesOperations {
     fun getPlaceDetails(
         @ToolArg(description = "Google Place ID") placeId: String,
         @ToolArg(description = "Language code (e.g. 'zh-TW', 'en')") language: String = DEFAULT_LANGUAGE,
-        @ToolArg(description = "Region code (e.g. 'TW', 'US')") regionCode: String? = null
+        @ToolArg(description = "Region code (e.g. 'TW', 'US')", required = false) regionCode: String? = null
     ): String {
         return executeWithErrorHandling(
             mapOf(

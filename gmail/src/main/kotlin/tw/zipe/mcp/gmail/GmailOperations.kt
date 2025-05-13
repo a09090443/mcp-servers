@@ -98,7 +98,7 @@ class GmailOperations {
         to: String,
         subject: String,
         bodyText: String,
-        cc: String = "",
+        cc: String? = "",
         attachments: List<Map<String, String>> = emptyList()
     ): MimeMessage {
         val props = Properties()
@@ -109,7 +109,7 @@ class GmailOperations {
         email.addRecipient(jakarta.mail.Message.RecipientType.TO, InternetAddress(to))
 
         // 添加副本
-        if (cc.isNotEmpty()) {
+        if (!cc.isNullOrEmpty()) {
             email.addRecipient(jakarta.mail.Message.RecipientType.CC, InternetAddress(cc))
         }
 
@@ -205,13 +205,19 @@ class GmailOperations {
         @ToolArg(description = "Email recipient address") to: String,
         @ToolArg(description = "Email subject") subject: String,
         @ToolArg(description = "Email body content") bodyText: String,
-        @ToolArg(description = "CC recipients (optional)") cc: String = "",
-        @ToolArg(description = "List of attachments with path and name fields") attachments: String = "[]"
+        @ToolArg(description = "CC recipients", required = false) cc: String?,
+        @ToolArg(
+            description = "List of attachments with path and name fields",
+            required = false
+        ) attachments: String = "[]"
     ): String {
         return try {
 
             val attachmentsList = try {
-                gson.fromJson<Array<Map<String, String>>>(attachments, object : TypeToken<Array<Map<String, String>>>() {}.type)?.toList() ?: emptyList()
+                gson.fromJson<Array<Map<String, String>>>(
+                    attachments,
+                    object : TypeToken<Array<Map<String, String>>>() {}.type
+                )?.toList() ?: emptyList()
             } catch (e: Exception) {
                 return createErrorResponse("無效的附件格式: ${e.message}")
             }

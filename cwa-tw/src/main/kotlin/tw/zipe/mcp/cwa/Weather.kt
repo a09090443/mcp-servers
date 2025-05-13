@@ -51,8 +51,8 @@ class Weather {
     fun getTownshipWeatherForecast(
         @ToolArg(description = "API ID corresponding to Taiwan county/city") locationId: String,
         @ToolArg(description = "Township name, e.g., 信義區, 萬華區") locationName: String,
-        @ToolArg(description = "Start time, format: yyyy-MM-ddThh:mm:ss") timeFrom: String? = null,
-        @ToolArg(description = "End time, format: yyyy-MM-ddThh:mm:ss") timeTo: String? = null
+        @ToolArg(description = "Start time, format: yyyy-MM-ddThh:mm:ss", required = false) timeFrom: String? = null,
+        @ToolArg(description = "End time, format: yyyy-MM-ddThh:mm:ss", required = false) timeTo: String? = null
     ): JsonNode {
         val now = LocalDateTime.now()
         val (startTime, endTime) = calculateTimeRange(
@@ -85,8 +85,8 @@ class Weather {
     @Tool(description = "Get earthquake observation data for a specific area. AreaName is required. Time can only be set before the current time, and the time range cannot exceed 36 hours.")
     fun getEarthquakeData(
         @ToolArg(description = "City name,For example:花蓮縣、臺東縣") areaName: String,
-        @ToolArg(description = "Start time (yyyy-MM-ddThh:mm:ss)") timeFrom: String? = null,
-        @ToolArg(description = "End time (yyyy-MM-ddThh:mm:ss)") timeTo: String? = null
+        @ToolArg(description = "Start time (yyyy-MM-ddThh:mm:ss)", required = false) timeFrom: String? = null,
+        @ToolArg(description = "End time (yyyy-MM-ddThh:mm:ss)", required = false) timeTo: String? = null
     ): JsonNode {
         val now = LocalDateTime.now()
         val thirtySixHoursAgo = now.minusHours(36)
