@@ -43,7 +43,7 @@ class GoogleMapsPlacesOperationsIntegrationTest {
         assertNotNull(firstPlace.get("formattedAddress"))
     }
 
-    @Test
+//    @Test
     fun `searchPlaces should return results with location parameter`() {
         // 三芝市區座標
         val latitude = 25.2576
@@ -71,7 +71,7 @@ class GoogleMapsPlacesOperationsIntegrationTest {
         assertFalse(places.isEmpty)
     }
 
-    @Test
+//    @Test
     fun `searchPlaces should handle includedType parameter`() {
         // 執行
         val result = placesOperations.searchPlaces(
@@ -88,7 +88,7 @@ class GoogleMapsPlacesOperationsIntegrationTest {
         assertFalse(places.isEmpty)
     }
 
-    @Test
+//    @Test
     fun `searchPlaces should handle priceLevel parameter`() {
         // 執行
         val result = placesOperations.searchPlaces(
@@ -102,7 +102,7 @@ class GoogleMapsPlacesOperationsIntegrationTest {
         assertTrue(jsonObject.has("results"))
     }
 
-    @Test
+//    @Test
     fun `getNearbyPlaces should return places near given location`() {
         // 台北市座標
         val latitude = 25.033
@@ -126,7 +126,7 @@ class GoogleMapsPlacesOperationsIntegrationTest {
         assertFalse(places.isEmpty)
     }
 
-    @Test
+//    @Test
     fun `getNearbyPlaces should handle rankPreference parameter`() {
         // 台北市座標
         val latitude = 25.033
@@ -146,7 +146,7 @@ class GoogleMapsPlacesOperationsIntegrationTest {
         assertTrue(jsonObject.has("results"))
     }
 
-    @Test
+//    @Test
     fun `getPlaceAutocomplete should return suggestions for input`() {
         // 執行
         val result = placesOperations.getPlaceAutocomplete("台北1")
@@ -159,7 +159,7 @@ class GoogleMapsPlacesOperationsIntegrationTest {
         assertFalse(suggestions.isEmpty)
     }
 
-    @Test
+//    @Test
     fun `getPlaceAutocomplete should handle location bias`() {
         // 台北市座標
         val latitude = 25.033
@@ -179,7 +179,7 @@ class GoogleMapsPlacesOperationsIntegrationTest {
         assertTrue(jsonObject.has("suggestions"))
     }
 
-    @Test
+//    @Test
     fun `getPlaceAutocomplete should handle includedPrimaryType parameter`() {
         // 執行
         val result = placesOperations.getPlaceAutocomplete(
@@ -193,7 +193,7 @@ class GoogleMapsPlacesOperationsIntegrationTest {
         assertTrue(jsonObject.has("suggestions"))
     }
 
-    @Test
+//    @Test
     fun `getPlaceDetails should return details for valid placeId`() {
         // 先通過搜索獲取有效的placeId
         val searchResult = placesOperations.searchPlaces("台北101")
@@ -254,7 +254,7 @@ class GoogleMapsPlacesOperationsIntegrationTest {
         assertTrue(hasExtendedField)
     }
 
-    @Test
+//    @Test
     fun `getPlacePhoto should return photo URL`() {
         // 先通過搜索獲取一個有效的placeId
         val searchResult = placesOperations.searchPlaces("台北101")

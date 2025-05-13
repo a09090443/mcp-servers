@@ -30,7 +30,7 @@ import java.io.IOException
 class GoogleMapsPlacesOperations {
     companion object {
         private const val API_KEY_ENV_VAR = "GOOGLE_MAPS_API_KEY"
-        private const val DEFAULT_RADIUS = 5000.0
+        private const val DEFAULT_RADIUS = 500.0
         private const val DEFAULT_MAX_RESULTS = 20
         private const val DEFAULT_LANGUAGE = "zh-TW"
         private const val DEFAULT_PHOTO_MAX_WIDTH = 800
@@ -191,7 +191,7 @@ class GoogleMapsPlacesOperations {
         @ToolArg(description = "Text query to search places") query: String,
         @ToolArg(description = "Latitude of search center", required = false) latitude: Double? = null,
         @ToolArg(description = "Longitude of search center", required = false) longitude: Double? = null,
-        @ToolArg(description = "Search radius in meters", required = false) radius: Double = 500.0,
+        @ToolArg(description = "Search radius in meters", required = false) radius: Double? = DEFAULT_RADIUS,
         @ToolArg(description = "Language code (e.g. 'zh-TW', 'en')") language: String = DEFAULT_LANGUAGE,
         @ToolArg(description = "Maximum number of results to return (max 20)") maxResults: Int = DEFAULT_MAX_RESULTS,
         @ToolArg(description = "Whether place must be currently open", required = false) openNow: Boolean? = null,
