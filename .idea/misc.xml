@@ -7,8 +7,10 @@
     <file type="web" url="file://$PROJECT_DIR$/excel" />
     <file type="web" url="file://$PROJECT_DIR$/filesysten" />
     <file type="web" url="file://$PROJECT_DIR$/gmail" />
+    <file type="web" url="file://$PROJECT_DIR$/gmap" />
     <file type="web" url="file://$PROJECT_DIR$/google-drive" />
     <file type="web" url="file://$PROJECT_DIR$/google-map" />
+    <file type="web" url="file://$PROJECT_DIR$/mcp-example" />
   </component>
   <component name="ProjectRootManager" version="2" languageLevel="JDK_21_PREVIEW" project-jdk-name="21" project-jdk-type="JavaSDK" />
 </project>

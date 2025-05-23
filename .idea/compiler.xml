@@ -2,6 +2,17 @@
 <project version="4">
   <component name="CompilerConfiguration">
     <bytecodeTargetLevel>
+      <module name="gmap" target="21" />
+      <module name="gmap.main" target="21" />
+      <module name="gmap.test" target="21" />
+      <module name="mcp-example" target="21" />
+      <module name="mcp-example.integrationTest" target="21" />
+      <module name="mcp-example.main" target="21" />
+      <module name="mcp-example.native-test" target="21" />
+      <module name="mcp-example.quarkus-generated-sources" target="21" />
+      <module name="mcp-example.quarkus-test-generated-sources" target="21" />
+      <module name="mcp-example.test" target="21" />
+      <module name="quarkus-example" target="21" />
       <module name="tw.zipe.mcp.cwa.cwa-tw.integrationTest" target="21" />
       <module name="tw.zipe.mcp.cwa.cwa-tw.main" target="21" />
       <module name="tw.zipe.mcp.cwa.cwa-tw.native-test" target="21" />
@@ -9,5 +20,13 @@
       <module name="tw.zipe.mcp.cwa.cwa-tw.quarkus-test-generated-sources" target="21" />
       <module name="tw.zipe.mcp.cwa.cwa-tw.test" target="21" />
     </bytecodeTargetLevel>
+  </component>
+  <component name="JavacSettings">
+    <option name="ADDITIONAL_OPTIONS_OVERRIDE">
+      <module name="gmap" options="-parameters" />
+      <module name="gmap.main" options="-parameters" />
+      <module name="gmap.test" options="-parameters" />
+      <module name="mcp-example.main" options="-parameters" />
+    </option>
   </component>
 </project>

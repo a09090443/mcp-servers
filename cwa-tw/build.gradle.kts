@@ -12,7 +12,7 @@ repositories {
 val quarkusPlatformGroupId: String by project
 val quarkusPlatformArtifactId: String by project
 val quarkusPlatformVersion: String by project
-val mcpServerStdioVersion = "1.1.1"
+val mcpServerStdioVersion = "1.2.0"
 val gsonVersion = "2.12.1"
 val mockitoCoreVersion = "5.16.1"
 
