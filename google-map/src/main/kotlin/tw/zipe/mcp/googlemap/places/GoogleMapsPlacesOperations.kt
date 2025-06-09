@@ -95,7 +95,6 @@ class GoogleMapsPlacesOperations {
     }
 
     // ======= 回應處理工具方法 =======
-
     private fun Any.toSuccessResponse(): String =
         when (this) {
             is String -> this.toByteArray(Charsets.UTF_8).toString(Charsets.UTF_8)
