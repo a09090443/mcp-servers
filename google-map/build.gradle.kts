@@ -15,7 +15,7 @@ repositories {
 val quarkusPlatformGroupId: String by project
 val quarkusPlatformArtifactId: String by project
 val quarkusPlatformVersion: String by project
-val mcpServerStdioVersion = "1.2.0"
+val mcpServerStdioVersion = "1.2.2"
 val googleApiClientVersion = "2.2.0"
 val googleHttpClientVersion = "1.46.3"
 val googleCloudPlacesVersion = "0.31.0"
