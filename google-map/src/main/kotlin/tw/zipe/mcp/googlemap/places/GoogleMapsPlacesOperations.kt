@@ -185,7 +185,7 @@ class GoogleMapsPlacesOperations {
     /**
      * 搜尋地點
      */
-    @Tool(description = "Search places using text query")
+    @Tool(description = "Search places using text query and filter by ratings, price levels or types")
     fun searchPlaces(
         @ToolArg(description = "Text query to search places") query: String,
         @ToolArg(description = "Latitude of search center", required = false) latitude: Double? = null,
@@ -195,7 +195,7 @@ class GoogleMapsPlacesOperations {
         @ToolArg(description = "Maximum number of results to return (max 20)") maxResults: Int = DEFAULT_MAX_RESULTS,
         @ToolArg(description = "Whether place must be currently open", required = false) openNow: Boolean? = null,
         @ToolArg(description = "Included place type (e.g. 'restaurant', 'hospital')", required = false) includedType: String? = null,
-        @ToolArg(description = "Minimum rating (e.g. 4.0)", required = false) minRating: Double? = null,
+        @ToolArg(description = "Minimum rating (0.0-5.0 in 0.5 increments, e.g. 4.0)", required = false) minRating: Double? = null,
         @ToolArg(description = "Price levels (comma-separated, e.g. 'MODERATE,EXPENSIVE')", required = false) priceLevels: String? = null,
         @ToolArg(description = "Return fields (comma-separated, e.g. id,displayName,formattedAddress). Call getFieldMaskDescription() to see all available fields.", required = false) fields: String? = null
     ): String {

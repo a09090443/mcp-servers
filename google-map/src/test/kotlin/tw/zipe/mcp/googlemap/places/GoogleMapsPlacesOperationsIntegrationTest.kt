@@ -24,10 +24,10 @@ class GoogleMapsPlacesOperationsIntegrationTest {
         placesOperations = GoogleMapsPlacesOperations()
     }
 
-//    @Test
+    @Test
     fun `searchPlaces should return results for valid query`() {
         // 執行
-        val result = placesOperations.searchPlaces("台北101")
+        val result = placesOperations.searchPlaces(query = "華姐麵店", minRating = 1.0)
         val jsonObject = JsonParser.parseString(result).asJsonObject
 
         // 驗證 - 根據實際返回格式調整
@@ -226,7 +226,7 @@ class GoogleMapsPlacesOperationsIntegrationTest {
 //    @Test
     fun `getPlaceDetails should handle extended fields`() {
         // 先通過搜索獲取有效的placeId
-        val searchResult = placesOperations.searchPlaces("台北101")
+        val searchResult = placesOperations.searchPlaces("初心園")
         val searchJson = JsonParser.parseString(searchResult).asJsonObject
 
         // 檢查搜索結果
