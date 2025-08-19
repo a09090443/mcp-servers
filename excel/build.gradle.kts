@@ -12,7 +12,7 @@ repositories {
 val quarkusPlatformGroupId: String by project
 val quarkusPlatformArtifactId: String by project
 val quarkusPlatformVersion: String by project
-val mcpServerStdioVersion = "1.2.2"
+val mcpServerStdioVersion = "1.4.1"
 val poiVersion="5.4.0"
 val gsonVersion="2.12.1"
 
