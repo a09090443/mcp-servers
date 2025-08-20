@@ -205,7 +205,7 @@ class GmailOperations {
         @ToolArg(description = "Email recipient address") to: String,
         @ToolArg(description = "Email subject") subject: String,
         @ToolArg(description = "Email body content") bodyText: String,
-        @ToolArg(description = "CC recipients", required = false) cc: String?,
+        @ToolArg(description = "CC recipients", required = false) cc: String? = null,
         @ToolArg(
             description = "List of attachments with path and name fields",
             required = false
