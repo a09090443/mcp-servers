@@ -3,6 +3,7 @@ package tw.zipe.mcp.twse
 import jakarta.inject.Singleton
 import jakarta.ws.rs.GET
 import jakarta.ws.rs.Path
+import jakarta.ws.rs.PathParam
 import org.eclipse.microprofile.rest.client.inject.RegisterRestClient
 
 @Singleton
@@ -26,35 +27,15 @@ interface TWStockClient {
     @Path("/opendata/t187ap45_L")
     fun getCompanyDividendInfo(): List<Map<String, Any>>
 
-    // 董監與股權、資產負債表
+    // 董監與股權資訊細分
     @GET
-    @Path("/opendata/t187ap06_L")
-    fun getCompanyShareholdingInfo(): List<Map<String, Any>>
+    @Path("/opendata/t187ap06_L_{category}")
+    fun getCompanyShareholdingInfo(@PathParam("category") category: String): List<Map<String, Any>>
 
     // t187ap07_L 系列（資產負債表細分）
     @GET
-    @Path("/opendata/t187ap07_L_bd")
-    fun getBankBalanceSheet(): List<Map<String, Any>>
-
-    @GET
-    @Path("/opendata/t187ap07_L_ci")
-    fun getManufacturingBalanceSheet(): List<Map<String, Any>>
-
-    @GET
-    @Path("/opendata/t187ap07_L_fh")
-    fun getFinancialHoldingBalanceSheet(): List<Map<String, Any>>
-
-    @GET
-    @Path("/opendata/t187ap07_L_ins")
-    fun getInsuranceBalanceSheet(): List<Map<String, Any>>
-
-    @GET
-    @Path("/opendata/t187ap07_L_mim")
-    fun getAggregatedBalanceSheet(): List<Map<String, Any>>
-
-    @GET
-    @Path("/opendata/t187ap07_L_basi")
-    fun getBasicBalanceSheet(): List<Map<String, Any>>
+    @Path("/opendata/t187ap07_L_{category}")
+    fun getCompanyBalanceSheet(@PathParam("category") category: String): List<Map<String, Any>>
 
     // ESG 相關
     @GET

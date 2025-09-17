@@ -4,12 +4,11 @@ import io.quarkus.test.junit.QuarkusTest
 import jakarta.inject.Inject
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
-import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
 @QuarkusTest
-class TWStockTest {
+class TWStockToolTest {
 
     @Inject
     lateinit var twStock: TWStock
@@ -19,30 +18,30 @@ class TWStockTest {
     fun `should return company basic info when stock code exists`() {
         val result = twStock.getCompanyBasicInfo("2330")
 
-        if (result != null) {
+        if (result.isNotEmpty()) {
             assertEquals("2330", result["公司代號"])
             assertNotNull(result["公司名稱"])
         }
     }
 
     @Test
-    fun `should return null when stock code does not exist for basic info`() {
+    fun `should return empty map when stock code does not exist for basic info`() {
         val result = twStock.getCompanyBasicInfo("9999")
-        assertNull(result)
+        assertTrue(result.isEmpty())
     }
 
     @Test
     fun `should return company EPS info when stock code exists`() {
-        val result = twStock.getCompanyEPS("3673")
+        val result = twStock.getCompanyEPS("2330")
         assertNotNull(result)
-        assertTrue(result.isEmpty() || result.all { it["公司代號"] == "3673" })
+        assertTrue(result.isEmpty() || result.all { it["公司代號"] == "2330" })
     }
 
     @Test
     fun `should return company monthly revenue when stock code exists`() {
         val result = twStock.getCompanyMonthlyRevenue("2330")
 
-        if (result != null) {
+        if (result.isNotEmpty()) {
             assertEquals("2330", result["公司代號"])
         }
     }
@@ -51,72 +50,27 @@ class TWStockTest {
     fun `should return company dividend info when stock code exists`() {
         val result = twStock.getCompanyDividendInfo("2330")
 
-        if (result != null) {
+        if (result.isNotEmpty()) {
             assertEquals("2330", result["公司代號"])
         }
     }
 
     // 董監與股權資訊測試
     @Test
-    fun `should return company shareholding info when stock code exists`() {
-        val result = twStock.getCompanyShareholdingInfo("2330")
+    fun `should return company income statement when stock code exists`() {
+        val result = twStock.getCompanyIncomeStatement("2330")
 
-        if (result != null) {
+        if (result.isNotEmpty()) {
             assertEquals("2330", result["公司代號"])
         }
     }
 
     // 資產負債表相關測試
     @Test
-    fun `should return bank balance sheet when stock code exists`() {
-        val result = twStock.getBankBalanceSheet("2330")
+    fun `should return company balance sheet when stock code exists`() {
+        val result = twStock.getCompanyBalanceSheet("2330")
 
-        if (result != null) {
-            assertEquals("2330", result["公司代號"])
-        }
-    }
-
-    @Test
-    fun `should return manufacturing balance sheet when stock code exists`() {
-        val result = twStock.getManufacturingBalanceSheet("2330")
-
-        if (result != null) {
-            assertEquals("2330", result["公司代號"])
-        }
-    }
-
-    @Test
-    fun `should return financial holding balance sheet when stock code exists`() {
-        val result = twStock.getFinancialHoldingBalanceSheet("2330")
-
-        if (result != null) {
-            assertEquals("2330", result["公司代號"])
-        }
-    }
-
-    @Test
-    fun `should return insurance balance sheet when stock code exists`() {
-        val result = twStock.getInsuranceBalanceSheet("2330")
-
-        if (result != null) {
-            assertEquals("2330", result["公司代號"])
-        }
-    }
-
-    @Test
-    fun `should return aggregated balance sheet when stock code exists`() {
-        val result = twStock.getAggregatedBalanceSheet("2330")
-
-        if (result != null) {
-            assertEquals("2330", result["公司代號"])
-        }
-    }
-
-    @Test
-    fun `should return basic balance sheet when stock code exists`() {
-        val result = twStock.getBasicBalanceSheet("2330")
-
-        if (result != null) {
+        if (result.isNotEmpty()) {
             assertEquals("2330", result["公司代號"])
         }
     }
@@ -126,7 +80,7 @@ class TWStockTest {
     fun `should return ESG sustainability report when stock code exists`() {
         val result = twStock.getCompanyESGSustainabilityReport("2330")
 
-        if (result != null) {
+        if (result.isNotEmpty()) {
             assertEquals("2330", result["公司代號"])
         }
     }
@@ -135,7 +89,7 @@ class TWStockTest {
     fun `should return ESG functional committee info when stock code exists`() {
         val result = twStock.getCompanyESGFunctionalCommittee("2330")
 
-        if (result != null) {
+        if (result.isNotEmpty()) {
             assertEquals("2330", result["公司代號"])
         }
     }
@@ -144,7 +98,7 @@ class TWStockTest {
     fun `should return ESG supply chain info when stock code exists`() {
         val result = twStock.getCompanyESGSupplyChain("2330")
 
-        if (result != null) {
+        if (result.isNotEmpty()) {
             assertEquals("2330", result["公司代號"])
         }
     }
@@ -153,7 +107,7 @@ class TWStockTest {
     fun `should return ESG other info when stock code exists`() {
         val result = twStock.getCompanyESGOtherInfo("2330")
 
-        if (result != null) {
+        if (result.isNotEmpty()) {
             assertEquals("2330", result["公司代號"])
         }
     }
@@ -162,7 +116,7 @@ class TWStockTest {
     fun `should return ESG risk management info when stock code exists`() {
         val result = twStock.getCompanyESGRiskManagement("2330")
 
-        if (result != null) {
+        if (result.isNotEmpty()) {
             assertEquals("2330", result["公司代號"])
         }
     }
@@ -172,7 +126,7 @@ class TWStockTest {
     fun `should return company announcements when stock code exists`() {
         val result = twStock.getCompanyAnnouncements("2330")
 
-        if (result != null) {
+        if (result.isNotEmpty()) {
             assertEquals("2330", result["公司代號"])
         }
     }
@@ -181,7 +135,7 @@ class TWStockTest {
     fun `should return company financial data when stock code exists`() {
         val result = twStock.getCompanyFinancialData("2330")
 
-        if (result != null) {
+        if (result.isNotEmpty()) {
             assertEquals("2330", result["公司代號"])
         }
     }
@@ -190,7 +144,7 @@ class TWStockTest {
     fun `should return company business data when stock code exists`() {
         val result = twStock.getCompanyBusinessData("2330")
 
-        if (result != null) {
+        if (result.isNotEmpty()) {
             assertEquals("2330", result["公司代號"])
         }
     }
@@ -215,8 +169,8 @@ class TWStockTest {
     }
 
     @Test
-    fun `should return QFII top 20 holdings`() {
-        val result = twStock.getQFIITop20Holdings()
+    fun `should return top 20 investor holdings summary`() {
+        val result = twStock.getTop20InvestorHoldingsSummary()
         assertNotNull(result)
     }
 
@@ -246,9 +200,12 @@ class TWStockTest {
 
     // 交易資訊測試
     @Test
-    fun `should return stock daily info`() {
-        val result = twStock.getStockDailyInfo()
-        assertNotNull(result)
+    fun `should return stock daily info when stock code exists`() {
+        val result = twStock.getStockDailyInfo("2330")
+
+        if (result.isNotEmpty()) {
+            assertEquals("2330", result["公司代號"])
+        }
     }
 
     @Test
@@ -282,21 +239,36 @@ class TWStockTest {
     }
 
     @Test
-    fun `should return valuation indicators`() {
-        val result = twStock.getValuationIndicators()
-        assertNotNull(result)
+    fun `should return stock valuation ratios when stock code exists`() {
+        val result = twStock.getStockValuationRatios("2330")
+
+        if (result.isNotEmpty()) {
+            assertEquals("2330", result["公司代號"])
+        }
     }
 
     // 錯誤處理測試
     @Test
-    fun `should handle empty stock code`() {
+    fun `should return empty map for empty stock code`() {
         val result = twStock.getCompanyBasicInfo("")
-        assertNull(result)
+        assertTrue(result.isEmpty())
     }
 
     @Test
-    fun `should handle invalid stock code`() {
+    fun `should return empty map for invalid stock code`() {
         val result = twStock.getCompanyBasicInfo("INVALID")
-        assertNull(result)
+        assertTrue(result.isEmpty())
+    }
+
+    @Test
+    fun `should return empty map for non-existent stock code in daily info`() {
+        val result = twStock.getStockDailyInfo("9999")
+        assertTrue(result.isEmpty())
+    }
+
+    @Test
+    fun `should return empty map for non-existent stock code in valuation ratios`() {
+        val result = twStock.getStockValuationRatios("9999")
+        assertTrue(result.isEmpty())
     }
 }
