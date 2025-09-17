@@ -58,11 +58,12 @@ interface TWStockClient {
     @Path("/opendata/t187ap46_L_19")
     fun getCompanyESGRiskManagement(): List<Map<String, Any>>
 
-    // 其他公司資料
+    // 上市權證基本資料彙總表
     @GET
     @Path("/opendata/t187ap37_L")
     fun getCompanyAnnouncements(): List<Map<String, Any>>
 
+    // 上市認購(售)權證每日成交資料檔
     @GET
     @Path("/opendata/t187ap42_L")
     fun getCompanyFinancialData(): List<Map<String, Any>>
