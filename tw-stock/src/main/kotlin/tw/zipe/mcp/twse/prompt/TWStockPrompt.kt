@@ -35,12 +35,14 @@ class TWStockPrompt {
                 * `getCompanyBasicInfo(code)`：查詢公司基本資訊與產業分類。
                 * `getCompanyMonthlyRevenue(code)`：查詢公司每月營收趨勢，用於評估股息可持續性。
                 * `getCompanyIncomeStatement(code)`：查詢公司損益表數據，用於分析配發率。
-                * `getCompanyBalanceSheet(code)`：查詢公司資產負債表數據，用於評估財務實力。
+                * `getCompanyBalanceSheet(code)`：查詢公司資產負債表數據，用於評估財務實力（category 參數請參考 API 說明）。
+                * `getCompanyESGSustainabilityReport(code)`：查詢公司 ESG 永續報告，評估長期可持續性。
 
                 **市場驗證：**
                 * `getTop20InvestorHoldingsSummary()`：查詢外國投資者持有較多的股票，了解外資對股息股的偏好。
                 * `getETFRanking()`：查詢定期定額 ETF 投資排行榜，了解市場熱門的股息導向投資趨勢。
                 * `getStockDailyInfo(code)`：查詢股票每日交易數據，分析除權息日期前後的價格穩定性。
+                * `getCompanyDailyAnnouncements(code)`: 查詢公司公告，掌握公司重大訊息與事件。
 
                 **投資策略類型（strategy_type）：**
 

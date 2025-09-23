@@ -17,7 +17,7 @@ interface TWStockClient {
 
     @GET
     @Path("/opendata/t187ap04_L")
-    fun getCompanyEPS(): List<Map<String, Any>>
+    fun getCompanyDailyAnnouncements(): List<Map<String, Any>>
 
     @GET
     @Path("/opendata/t187ap05_L")

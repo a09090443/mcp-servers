@@ -3,9 +3,9 @@ package tw.zipe.mcp.twse.tool
 import io.quarkiverse.mcp.server.Tool
 import io.quarkiverse.mcp.server.ToolArg
 import jakarta.enterprise.context.ApplicationScoped
-import java.util.Locale
-import java.util.Locale.getDefault
 import kotlin.collections.ifEmpty
+import kotlin.sequences.ifEmpty
+import kotlin.text.get
 import org.eclipse.microprofile.rest.client.inject.RestClient
 import tw.zipe.mcp.twse.TWStockClient
 import tw.zipe.mcp.twse.enumerate.IndustryCategory
@@ -34,9 +34,14 @@ class TWStock {
         }
     }
 
-    @Tool(description = "Obtain the earnings per share (EPS) information of a company as a JSON object based on its stock code")
-    fun getCompanyEPS(@ToolArg(description = "Stock code", required = true) code: String?): List<Map<String, Any>> {
-        val data = twStockClient.getCompanyEPS()
+    @Tool(description = "Obtain the daily major announcements of a company as a JSON object based on its stock code")
+    fun getCompanyDailyAnnouncements(
+        @ToolArg(
+            description = "Stock code",
+            required = true
+        ) code: String?
+    ): List<Map<String, Any>> {
+        val data = twStockClient.getCompanyDailyAnnouncements()
         return data.filter { it[CODE_KEY] == code }.ifEmpty {
             if (!code.isNullOrBlank()) {
                 emptyList()
