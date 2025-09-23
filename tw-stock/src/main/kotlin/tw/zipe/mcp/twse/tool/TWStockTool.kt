@@ -3,9 +3,6 @@ package tw.zipe.mcp.twse.tool
 import io.quarkiverse.mcp.server.Tool
 import io.quarkiverse.mcp.server.ToolArg
 import jakarta.enterprise.context.ApplicationScoped
-import kotlin.collections.ifEmpty
-import kotlin.sequences.ifEmpty
-import kotlin.text.get
 import org.eclipse.microprofile.rest.client.inject.RestClient
 import tw.zipe.mcp.twse.TWStockClient
 import tw.zipe.mcp.twse.enumerate.IndustryCategory
