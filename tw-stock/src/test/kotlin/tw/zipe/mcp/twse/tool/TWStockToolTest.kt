@@ -39,14 +39,14 @@ class TWStockToolTest {
 
     @Test
     fun `should return company EPS info when stock code exists`() {
-        val result = twStock.getCompanyEPS("2330")
+        val result = twStock.getCompanyDailyAnnouncements("2330")
         assertNotNull(result)
         assertTrue(result.isEmpty() || result.all { it["公司代號"] == "2330" })
     }
 
     @Test
     fun `should return empty list when stock code does not exist for EPS`() {
-        val result = twStock.getCompanyEPS("9999")
+        val result = twStock.getCompanyDailyAnnouncements("9999")
         assertTrue(result.isEmpty())
     }
 
@@ -434,7 +434,7 @@ class TWStockToolTest {
     fun `should handle null parameters properly`() {
         // 測試各種 null 參數的處理
         assertNotNull(twStock.getCompanyBasicInfo(null))
-        assertNotNull(twStock.getCompanyEPS(null))
+        assertNotNull(twStock.getCompanyDailyAnnouncements(null))
         assertNotNull(twStock.getCompanyMonthlyRevenue(null))
         assertNotNull(twStock.getCompanyDividendInfo(null))
         assertNotNull(twStock.getMarginTradingBalance(null))
@@ -448,8 +448,8 @@ class TWStockToolTest {
         // 測試空白字串參數的處理
         assertTrue(twStock.getCompanyBasicInfo("   ").isNotEmpty() ||
                   twStock.getCompanyBasicInfo("   ").isEmpty())
-        assertTrue(twStock.getCompanyEPS("   ").isNotEmpty() ||
-                  twStock.getCompanyEPS("   ").isEmpty())
+        assertTrue(twStock.getCompanyDailyAnnouncements("   ").isNotEmpty() ||
+                  twStock.getCompanyDailyAnnouncements("   ").isEmpty())
         assertTrue(twStock.getCompanyMonthlyRevenue("   ").isNotEmpty() ||
                   twStock.getCompanyMonthlyRevenue("   ").isEmpty())
     }

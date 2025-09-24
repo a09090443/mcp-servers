@@ -136,6 +136,8 @@ class TWStockPrompt {
                 - [ ] 根據 strategyType 與 timeHorizon 選擇適當的 API 端點
                 - [ ] 分析 API 回傳的數據
                 - [ ] 產生結構化的股息投資建議
+                - [ ] 記錄 API 呼叫結果
+                - [ ] 將分析過程、API 呼叫記錄及結果輸出至 analysis.md
                 - [ ] 更新 progress.md
                 
                 **analysis.md 檔案內容範例：**
@@ -146,6 +148,36 @@ class TWStockPrompt {
                 **策略類型：** 高殖利率 (High Yield)
                 **時間範圍：** 季度焦點 (Quarterly)
                 
+                ### API 呼叫記錄
+
+                *   **時間：** 2025-09-24 10:00:00
+                    **API：** `get_stock_valuation_ratios(code='2330')`
+                    **狀態：** 成功
+                    **結果：**
+                    ```json
+                    {
+                        "P/E Ratio": 20.5,
+                        "Dividend Yield": 1.42,
+                        "P/B Ratio": 3.2
+                    }
+                    ```
+
+                *   **時間：** 2025-09-24 10:00:10
+                    **API：** `get_dividend_rights_schedule(code='2330')`
+                    **狀態：** 成功
+                    **結果：**
+                    ```json
+                    {
+                        "Ex-dividend Date": "2025-08-07",
+                        "Dividend Amount": 10.0
+                    }
+                    ```
+
+                *   **時間：** 2025-09-24 10:00:20
+                    **API：** `get_company_income_statement(code='2330')`
+                    **狀態：** 失敗
+                    **錯誤訊息：** API 請求超時
+
                 ### 1. 股息篩選
                 
                 *   **篩選標準：** 股息殖利率 > 4%
