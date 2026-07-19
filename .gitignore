@@ -1,0 +1,37 @@
+# IntelliJ IDEA
+.idea/
+*.ipr
+*.iml
+*.iws
+
+# Eclipse
+.project
+.classpath
+.settings/
+bin/
+
+# Visual Studio Code
+.vscode/
+.factorypath
+
+# Gradle
+.gradle/
+build/
+
+# OSX
+.DS_Store
+
+# Vim
+*.swp
+*.swo
+
+# patch
+*.orig
+*.rej
+
+# Local environment
+.env
+
+# OAuth token stores (建立於執行時的工作目錄，路徑不固定)
+tokens/
+gmail_tokens/
