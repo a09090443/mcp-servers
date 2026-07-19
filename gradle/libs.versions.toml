@@ -1,0 +1,71 @@
+# 全 repo 共用的套件版本目錄。
+#
+# 這個 repo 是 8 個彼此獨立的 Gradle 專案（根目錄刻意沒有 settings.gradle.kts）。
+# 此檔案是唯一的版本來源，各模組在自己的 settings.gradle.kts 以
+# from(files("../gradle/libs.versions.toml")) 引用，架構的獨立性不變。
+#
+# 改版本請只改這裡，不要在個別模組的 build.gradle.kts 寫死版本號。
+
+[versions]
+# Kotlin 必須對齊 quarkus-bom 管理的版本。
+# 模組使用 enforcedPlatform，會強制覆寫 kotlin-stdlib 版本，
+# 若這裡設得比 BOM 新，會變成新編譯器搭配被降版的 stdlib。
+kotlin = "2.4.0"
+quarkus = "3.37.3"
+mcpServerStdio = "1.13.1"
+
+gson = "2.14.0"
+poi = "5.5.1"
+commonsIo = "2.22.0"
+microprofileRestClient = "4.0"
+
+googleApiClient = "2.9.0"
+# google-http-client 雖有 2.x，但 quarkus-bom 也管理這個套件，
+# 而模組使用 enforcedPlatform，宣告 2.x 會被強制降回 BOM 的 1.47.1。
+# 這裡直接寫實際生效的版本，避免宣告與解析結果不符。
+googleHttpClient = "1.47.1"
+googleOauthClient = "1.39.0"
+googleAuthLibrary = "1.49.0"
+googleMapsPlaces = "0.65.0"
+googleApiServicesGmail = "v1-rev20260525-2.0.0"
+googleApiServicesDrive = "v3-rev20260712-2.0.0"
+angusMail = "2.0.5"
+
+mockito = "5.23.0"
+mockk = "1.14.11"
+
+[libraries]
+quarkus-bom = { group = "io.quarkus.platform", name = "quarkus-bom", version.ref = "quarkus" }
+quarkus-kotlin = { group = "io.quarkus", name = "quarkus-kotlin" }
+quarkus-arc = { group = "io.quarkus", name = "quarkus-arc" }
+quarkus-rest-client = { group = "io.quarkus", name = "quarkus-rest-client" }
+quarkus-rest-client-jackson = { group = "io.quarkus", name = "quarkus-rest-client-jackson" }
+quarkus-junit5 = { group = "io.quarkus", name = "quarkus-junit5" }
+
+kotlin-stdlib-jdk8 = { group = "org.jetbrains.kotlin", name = "kotlin-stdlib-jdk8" }
+
+mcp-server-stdio = { group = "io.quarkiverse.mcp", name = "quarkus-mcp-server-stdio", version.ref = "mcpServerStdio" }
+
+gson = { group = "com.google.code.gson", name = "gson", version.ref = "gson" }
+poi = { group = "org.apache.poi", name = "poi", version.ref = "poi" }
+poi-ooxml = { group = "org.apache.poi", name = "poi-ooxml", version.ref = "poi" }
+commons-io = { group = "commons-io", name = "commons-io", version.ref = "commonsIo" }
+microprofile-rest-client-api = { group = "org.eclipse.microprofile.rest.client", name = "microprofile-rest-client-api", version.ref = "microprofileRestClient" }
+
+google-api-client = { group = "com.google.api-client", name = "google-api-client", version.ref = "googleApiClient" }
+google-http-client = { group = "com.google.http-client", name = "google-http-client", version.ref = "googleHttpClient" }
+google-http-client-gson = { group = "com.google.http-client", name = "google-http-client-gson", version.ref = "googleHttpClient" }
+google-oauth-client-jetty = { group = "com.google.oauth-client", name = "google-oauth-client-jetty", version.ref = "googleOauthClient" }
+google-auth-library-oauth2-http = { group = "com.google.auth", name = "google-auth-library-oauth2-http", version.ref = "googleAuthLibrary" }
+google-maps-places = { group = "com.google.maps", name = "google-maps-places", version.ref = "googleMapsPlaces" }
+google-api-services-gmail = { group = "com.google.apis", name = "google-api-services-gmail", version.ref = "googleApiServicesGmail" }
+google-api-services-drive = { group = "com.google.apis", name = "google-api-services-drive", version.ref = "googleApiServicesDrive" }
+angus-mail = { group = "org.eclipse.angus", name = "angus-mail", version.ref = "angusMail" }
+
+mockito-core = { group = "org.mockito", name = "mockito-core", version.ref = "mockito" }
+mockk = { group = "io.mockk", name = "mockk", version.ref = "mockk" }
+
+[plugins]
+kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+kotlin-allopen = { id = "org.jetbrains.kotlin.plugin.allopen", version.ref = "kotlin" }
+quarkus = { id = "io.quarkus", version.ref = "quarkus" }

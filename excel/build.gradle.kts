@@ -1,7 +1,7 @@
 plugins {
-    kotlin("jvm") version "2.0.21"
-    kotlin("plugin.allopen") version "2.0.21"
-    id("io.quarkus")
+    alias(libs.plugins.kotlin.jvm)
+    alias(libs.plugins.kotlin.allopen)
+    alias(libs.plugins.quarkus)
 }
 
 repositories {
@@ -9,25 +9,18 @@ repositories {
     mavenLocal()
 }
 
-val quarkusPlatformGroupId: String by project
-val quarkusPlatformArtifactId: String by project
-val quarkusPlatformVersion: String by project
-val mcpServerStdioVersion = "1.4.1"
-val poiVersion="5.4.0"
-val gsonVersion="2.12.1"
-
 dependencies {
-    implementation(enforcedPlatform("${quarkusPlatformGroupId}:${quarkusPlatformArtifactId}:${quarkusPlatformVersion}"))
-    implementation("io.quarkus:quarkus-kotlin")
-    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
-    implementation("io.quarkus:quarkus-arc")
-    implementation("io.quarkiverse.mcp:quarkus-mcp-server-stdio:$mcpServerStdioVersion")
+    implementation(enforcedPlatform(libs.quarkus.bom))
+    implementation(libs.quarkus.kotlin)
+    implementation(libs.kotlin.stdlib.jdk8)
+    implementation(libs.quarkus.arc)
+    implementation(libs.mcp.server.stdio)
 
-    implementation("org.apache.poi:poi:$poiVersion")
-    implementation("org.apache.poi:poi-ooxml:$poiVersion")
-    implementation("com.google.code.gson:gson:$gsonVersion")
+    implementation(libs.poi)
+    implementation(libs.poi.ooxml)
+    implementation(libs.gson)
 
-    testImplementation("io.quarkus:quarkus-junit5")
+    testImplementation(libs.quarkus.junit5)
 }
 
 group = "tw.zipe.mcp.excel"

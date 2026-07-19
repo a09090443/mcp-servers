@@ -2,9 +2,9 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
-    kotlin("jvm") version "2.0.21"
-    kotlin("plugin.allopen") version "2.0.21"
-    id("io.quarkus")
+    alias(libs.plugins.kotlin.jvm)
+    alias(libs.plugins.kotlin.allopen)
+    alias(libs.plugins.quarkus)
 }
 
 repositories {
@@ -12,33 +12,25 @@ repositories {
     mavenLocal()
 }
 
-val quarkusPlatformGroupId: String by project
-val quarkusPlatformArtifactId: String by project
-val quarkusPlatformVersion: String by project
-val mcpServerStdioVersion = "1.4.1"
-val googleApiClientVersion = "2.2.0"
-val googleHttpClientVersion = "1.46.3"
-val googleCloudPlacesVersion = "0.31.0"
-
 dependencies {
-    implementation(enforcedPlatform("${quarkusPlatformGroupId}:${quarkusPlatformArtifactId}:${quarkusPlatformVersion}"))
-    implementation("io.quarkus:quarkus-kotlin")
-    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
-    implementation("io.quarkus:quarkus-arc")
-    implementation("io.quarkiverse.mcp:quarkus-mcp-server-stdio:$mcpServerStdioVersion")
+    implementation(enforcedPlatform(libs.quarkus.bom))
+    implementation(libs.quarkus.kotlin)
+    implementation(libs.kotlin.stdlib.jdk8)
+    implementation(libs.quarkus.arc)
+    implementation(libs.mcp.server.stdio)
 
-    implementation("com.google.api-client:google-api-client:${googleApiClientVersion}")
-    implementation("com.google.http-client:google-http-client:${googleHttpClientVersion}")
-    implementation("com.google.http-client:google-http-client-gson:${googleHttpClientVersion}")
+    implementation(libs.google.api.client)
+    implementation(libs.google.http.client)
+    implementation(libs.google.http.client.gson)
 
     // 新版 Google Cloud Places API 客戶端庫
-    implementation("com.google.maps:google-maps-places:${googleCloudPlacesVersion}")
+    implementation(libs.google.maps.places)
 
     // Google Auth 依賴
-    implementation("com.google.auth:google-auth-library-oauth2-http:1.33.1")
+    implementation(libs.google.auth.library.oauth2.http)
 
-    testImplementation("io.quarkus:quarkus-junit5")
-    testImplementation("io.mockk:mockk:1.14.0")
+    testImplementation(libs.quarkus.junit5)
+    testImplementation(libs.mockk)
 }
 
 group = "tw.zipe.mcp.googlemap"

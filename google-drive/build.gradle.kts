@@ -1,7 +1,7 @@
 plugins {
-    kotlin("jvm") version "2.0.21"
-    kotlin("plugin.allopen") version "2.0.21"
-    id("io.quarkus")
+    alias(libs.plugins.kotlin.jvm)
+    alias(libs.plugins.kotlin.allopen)
+    alias(libs.plugins.quarkus)
 }
 
 repositories {
@@ -9,28 +9,19 @@ repositories {
     mavenLocal()
 }
 
-val quarkusPlatformGroupId: String by project
-val quarkusPlatformArtifactId: String by project
-val quarkusPlatformVersion: String by project
-val mcpServerStdioVersion = "1.4.1"
-val googleApiClientVersion = "2.7.2"
-val googleOauthClientJettyVersion = "1.39.0"
-val googleApiServicesDriveVersion = "v3-rev20250220-2.0.0"
-val commonsIoVersion = "2.18.0"
-
 dependencies {
-    implementation(enforcedPlatform("${quarkusPlatformGroupId}:${quarkusPlatformArtifactId}:${quarkusPlatformVersion}"))
-    implementation("io.quarkus:quarkus-kotlin")
-    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
-    implementation("io.quarkus:quarkus-arc")
-    implementation("io.quarkiverse.mcp:quarkus-mcp-server-stdio:$mcpServerStdioVersion")
+    implementation(enforcedPlatform(libs.quarkus.bom))
+    implementation(libs.quarkus.kotlin)
+    implementation(libs.kotlin.stdlib.jdk8)
+    implementation(libs.quarkus.arc)
+    implementation(libs.mcp.server.stdio)
 
-    implementation("com.google.api-client:google-api-client:$googleApiClientVersion")
-    implementation("com.google.oauth-client:google-oauth-client-jetty:$googleOauthClientJettyVersion")
-    implementation("com.google.apis:google-api-services-drive:$googleApiServicesDriveVersion")
-    implementation("commons-io:commons-io:$commonsIoVersion")
+    implementation(libs.google.api.client)
+    implementation(libs.google.oauth.client.jetty)
+    implementation(libs.google.api.services.drive)
+    implementation(libs.commons.io)
 
-    testImplementation("io.quarkus:quarkus-junit5")
+    testImplementation(libs.quarkus.junit5)
 }
 
 group = "tw.zipe.mcp.googledrive"
