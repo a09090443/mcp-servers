@@ -21,6 +21,9 @@ mcp-servers/
 ├── gradle/
 │   ├── libs.versions.toml        # 全 repo 唯一的版本來源（version catalog）
 │   └── wrapper/
+├── buildSrc/                     # 共用建置慣例
+│   └── src/main/kotlin/
+│       └── mcp-server.conventions.gradle.kts   # 八個模組共用的建置設定
 ├── cwa-tw/                       # 中央氣象署：天氣預報與地震觀測
 │   └── src/main/kotlin/tw/zipe/mcp/cwa/
 │       ├── Weather.kt            # @Tool 進入點
@@ -76,22 +79,32 @@ mcp-servers/
 
 所有套件版本集中在根目錄的 `gradle/libs.versions.toml`。這是 Gradle 的預設路徑，**會自動註冊為所有子模組都能用的 `libs`**，不需要任何引用設定。
 
-子模組的 `build.gradle.kts` 一律使用 catalog 別名，**不要寫死版本號**：
+子模組的 `build.gradle.kts` 一律使用 catalog 別名，**不要寫死版本號**。
+
+## 共用建置慣例（buildSrc）
+
+八個模組共用的建置設定收在 `buildSrc/src/main/kotlin/mcp-server.conventions.gradle.kts`，包含：套用 kotlin/allopen/quarkus 三個插件、repositories、Java 21、`javaParameters`、allOpen 註解清單、測試的 logmanager 設定、UTF-8 編碼、`version`，以及每個模組都要的相依（quarkus-bom、quarkus-kotlin、kotlin-stdlib、quarkus-arc、mcp-server-stdio、quarkus-junit5）。
+
+因此模組的 `build.gradle.kts` 只剩三件事——套慣例插件、宣告專屬相依、指定 `group`：
 
 ```kotlin
 plugins {
-    alias(libs.plugins.kotlin.jvm)
-    alias(libs.plugins.kotlin.allopen)
-    alias(libs.plugins.quarkus)
+    id("mcp-server.conventions")
 }
 
 dependencies {
-    implementation(enforcedPlatform(libs.quarkus.bom))
-    implementation(libs.mcp.server.stdio)
+    implementation(libs.gson)
+    testImplementation(libs.mockito.core)
 }
+
+group = "tw.zipe.mcp.date"
 ```
 
-新增模組時要做三件事：在根 `settings.gradle.kts` 的 `include` 加入模組名、建立該模組的 `build.gradle.kts`（照抄現有模組的樣板）、需要的新套件加進 catalog。**不要**在模組底下放 `settings.gradle.kts`、`gradle.properties` 或 gradle wrapper。
+**改共用設定就改 conventions 檔，不要在個別模組重複宣告。** 模組端若再寫一次 `kotlin { }` 或 `allOpen { }` 會覆蓋慣例、造成模組間行為分歧，這正是先前 Kotlin 版本漂移的成因。
+
+`buildSrc` 是獨立建置，不會自動繼承根專案的 catalog，因此 `buildSrc/settings.gradle.kts` 有一段明確的 `from(files("../gradle/libs.versions.toml"))`。另外 `buildSrc/build.gradle.kts` 裡那行 `implementation(files(libs.javaClass...codeSource.location))` 是讓慣例插件能使用型別安全 `libs` 存取子的必要 workaround（Gradle 尚未原生支援），**移除會導致 conventions 檔編譯失敗**。
+
+新增模組時要做三件事：在根 `settings.gradle.kts` 的 `include` 加入模組名、建立該模組的 `build.gradle.kts`（照上面的樣板）、需要的新套件加進 catalog。**不要**在模組底下放 `settings.gradle.kts`、`gradle.properties` 或 gradle wrapper。
 
 ### 改版本時的兩個陷阱
 
@@ -158,7 +171,7 @@ quarkus.log.file.path=D:/tmp/<module>.log
 
 ### CDI 與 allOpen
 
-工具類別標註 `@ApplicationScoped`，Kotlin 類別預設 final，所以每個 `build.gradle.kts` 都設定了 allOpen plugin：
+工具類別標註 `@ApplicationScoped`，Kotlin 類別預設 final，所以慣例插件（`buildSrc/src/main/kotlin/mcp-server.conventions.gradle.kts`）統一設定了 allOpen plugin：
 
 ```kotlin
 allOpen {
@@ -169,7 +182,7 @@ allOpen {
 }
 ```
 
-新增的 CDI bean 若用了清單外的註解，需一併加入 allOpen，否則注入會失敗。另外 `javaParameters = true` 是必要設定——MCP 靠參數名產生 tool schema。
+新增的 CDI bean 若用了清單外的註解，需在**慣例插件**裡一併加入 allOpen（不要加在個別模組），否則注入會失敗。另外 `javaParameters = true` 是必要設定——MCP 靠參數名產生 tool schema，缺了它 `@Tool` 的參數名會變成 `arg0`、`arg1`。
 
 ### 兩種回傳慣例（新增工具時請對齊所在模組）
 

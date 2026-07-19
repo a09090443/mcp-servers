@@ -1,65 +1,14 @@
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
-
 plugins {
-    alias(libs.plugins.kotlin.jvm)
-    alias(libs.plugins.kotlin.allopen)
-    alias(libs.plugins.quarkus)
-}
-
-repositories {
-    mavenCentral()
-    mavenLocal()
+    id("mcp-server.conventions")
 }
 
 dependencies {
-    implementation(enforcedPlatform(libs.quarkus.bom))
-    implementation(libs.quarkus.kotlin)
-    implementation(libs.kotlin.stdlib.jdk8)
-    implementation(libs.quarkus.arc)
-    implementation(libs.mcp.server.stdio)
     implementation(libs.quarkus.rest.client)
     implementation(libs.quarkus.rest.client.jackson)
-
     implementation(libs.gson)
     implementation(libs.microprofile.rest.client.api)
 
-    testImplementation(libs.quarkus.junit5)
     testImplementation(libs.mockito.core)
 }
 
 group = "tw.zipe.mcp.twse"
-version = "1.0-SNAPSHOT"
-
-java {
-    sourceCompatibility = JavaVersion.VERSION_21
-    targetCompatibility = JavaVersion.VERSION_21
-}
-
-tasks.withType<Test> {
-    systemProperty("java.util.logging.manager", "org.jboss.logmanager.LogManager")
-}
-
-tasks.withType<JavaCompile> {
-    options.encoding = "UTF-8"
-}
-
-tasks.withType<KotlinCompile> {
-    compilerOptions {
-        jvmTarget.set(JvmTarget.JVM_21)
-    }
-}
-
-allOpen {
-    annotation("jakarta.ws.rs.Path")
-    annotation("jakarta.enterprise.context.ApplicationScoped")
-    annotation("jakarta.persistence.Entity")
-    annotation("io.quarkus.test.junit.QuarkusTest")
-}
-
-kotlin {
-    compilerOptions {
-        jvmTarget = JvmTarget.JVM_21
-        javaParameters = true
-    }
-}
