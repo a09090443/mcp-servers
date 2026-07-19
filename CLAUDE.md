@@ -223,12 +223,12 @@ assertTrue(result.isEmpty() || result.all { ... })
 
 ## 本機環境注意事項
 
-此 repo 在目前機器上有 git ownership 不符的問題，所有 git 指令需要加旗標：
+此 repo 的目錄擁有者 SID 與目前 Windows 帳號不同（多半是由舊帳號建立），git 原本會判定為 dubious ownership 而拒絕執行。**此問題已排除**，已加入全域例外：
 
 ```bash
-git -c safe.directory=D:/projects/mcp-servers <command>
+git config --global --add safe.directory D:/projects/mcp-servers
 ```
 
-或請使用者一次性設定 `git config --global --add safe.directory D:/projects/mcp-servers`。
+git 指令現在可直接執行，不需要再加 `-c safe.directory=...` 旗標。若換機器或重設 git 設定後又出現同樣錯誤，重跑上面那行即可。
 
 Commit 訊息遵循使用者全域 CLAUDE.md 的規範；**範圍（scope）請填模組目錄名**，例如 `修復(tw-stock): ...`、`新增(gmail): ...`。跨模組或根層級變更可省略範圍。
