@@ -138,54 +138,20 @@ allOpen {
 
 ## 各模組規則
 
-### `cwa-tw`
-- 環境變數：`AUTH_KEY`（中央氣象署 opendata 授權碼）
-- REST client base URI 寫死在 `@RegisterRestClient` 註解中
-- `application.properties` 在非 prod profile 下開啟 `trust-all=true` 繞過 TLS 驗證；`%prod.` 前綴的設定會關閉它。**修改 TLS 設定時務必保留 `%prod.` 覆寫。**
-- API 有時間區間限制：天氣預報 ≤ 24 小時、地震觀測 ≤ 36 小時，且地震查詢時間不得晚於當下
+各模組的專屬規則（環境變數、進入點、既有陷阱、測試方式）拆在 `.claude/rules/` 底下，以 `paths` frontmatter 限定範圍，**只有在讀取該模組檔案時才會載入**：
 
-### `date`
-- 無外部依賴、無環境變數，是唯一可離線完整測試的模組
-- 新增日期功能時優先改這裡
+| 規則檔 | 涵蓋範圍 | 關鍵內容 |
+|---|---|---|
+| `.claude/rules/cwa-tw.md` | `cwa-tw/**` | `AUTH_KEY`、TLS `%prod.` 覆寫、API 時間區間限制 |
+| `.claude/rules/date.md` | `date/**` | 無依賴、可離線測試 |
+| `.claude/rules/excel.md` | `excel/**` | Apache POI 資源關閉、既有縮排差異 |
+| `.claude/rules/filesystem.md` | `filesystem/**` | `@QuarkusMain`、CLI 路徑參數為存取控制機制 |
+| `.claude/rules/gmail.md` | `gmail/**` | `GMAIL_CREDENTIALS_FILE_PATH`、OAuth scope、測試會真的寄信 |
+| `.claude/rules/google-drive.md` | `google-drive/**` | `CREDENTIALS_FILE_PATH`（無前綴）、`SSLUtil` |
+| `.claude/rules/google-map.md` | `google-map/**` | field mask 必經路徑、前綴規則不一致、測試會計費 |
+| `.claude/rules/tw-stock.md` | `tw-stock/**` | client 端過濾、`@Prompt`、測試打線上 API |
 
-### `excel`
-- 基於 Apache POI，操作的是本機檔案路徑
-- 注意 `ExcelFileOperations.kt` 的 companion object 縮排與其他模組不同（多縮一層），是既有格式問題，不必特意對齊
-
-### `filesystem`
-- **唯一有 `@QuarkusMain` 進入點的模組。** `FileSystemApplication` 從 CLI 參數接收允許存取的路徑清單，寫入 `fileserver.paths` system property；未提供參數則以 exit code 1 終止
-- 因此啟動方式與其他模組不同：`java -jar build/filesystem-*-runner.jar <允許路徑1> <允許路徑2>`
-- 修改路徑限制邏輯時記得同步 `FileSystemApplication` 與 `FileSystemOperations`
-
-### `gmail`
-- 環境變數：`GMAIL_CREDENTIALS_FILE_PATH`（OAuth client secret JSON 路徑）
-- OAuth token 存於 `gmail_tokens/`（相對於行程工作目錄，已 gitignore）
-- 需要的 scope：`gmail_send`、`gmail_readonly`、`gmail_modify`
-- 刪除郵件是移至垃圾桶
-
-### `google-drive`
-- 環境變數：`CREDENTIALS_FILE_PATH`（注意**沒有** `GOOGLE_` 前綴，與 gmail 的變數名不同）
-- OAuth token 存於 `tokens/`（已 gitignore）
-- `SSLUtil.kt` 提供 SSL 設定輔助，動它之前先確認是否影響憑證驗證
-
-### `google-map`
-- 環境變數：`GOOGLE_MAPS_API_KEY`
-- **每次呼叫都會用 `createPlacesClientWithFieldMask()` 建立新的 `PlacesClient`**，以便帶入該次請求專屬的 `x-goog-fieldmask` header。Places API 強制要求 field mask，且欄位前綴規則不一致：`getPlaceDetails` 不加前綴，其餘方法需要 `places.` 前綴——這個分支邏輯在 `addPlacesPrefix()`
-- 新增工具時務必經由這個路徑建立 client，直接用注入的 `placesClient` 會因缺少 field mask 而失敗
-- `RemoveTrailingUnderscoreNamingStrategy` 用於處理 Google API 產生的欄位尾底線
-
-### `tw-stock`
-- 無環境變數，TWSE 開放資料不需金鑰
-- **TWSE API 一律回傳全市場資料，沒有依股票代號查詢的端點。** 過濾在 client 端做：取回整份清單後以 `公司代號` 這個中文 key 比對（常數 `CODE_KEY`）。既有慣例是代號為空白時回傳完整清單：
-  ```kotlin
-  data.filter { it[CODE_KEY] == code }.ifEmpty {
-      if (!code.isNullOrBlank()) emptyList() else data
-  }
-  ```
-  注意不同端點的代號欄位名稱未必都是 `公司代號`，新增工具前先確認實際回傳結構
-- 唯一提供 `@Prompt` 的模組，prompt 內容為繁體中文投資分析範本
-- `tool/TWStockTool.kt` 內的類別名為 `TWStock`，與檔名不一致
-- `getCompanyBusinessData` 已被註解停用，`TWStockClient` 中對應方法仍在
+要改某個模組時，直接讀該模組的檔案即可觸發對應規則載入；也可以主動開啟對應的 `.claude/rules/*.md` 查閱。新增模組時請一併建立規則檔並更新此表。
 
 ## 測試現況
 
