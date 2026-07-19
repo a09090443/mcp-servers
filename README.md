@@ -93,4 +93,4 @@ Google Maps Places API 地點查詢服務，提供地點搜尋與詳情功能：
 
 ## 技術架構
 
-所有服務均為獨立的 Gradle 專案，使用 Kotlin 2.2.0 開發，基於 Quarkus 框架與 `quarkus-mcp-server-stdio` 擴充套件，透過 MCP 通訊協議與其他系統互動，可獨立部署為 uber-jar。執行環境需求為 Java 21。
+所有服務均為獨立的 Gradle 專案，使用 Kotlin 2.4.0 開發，基於 Quarkus 框架與 `quarkus-mcp-server-stdio` 擴充套件，透過 MCP 通訊協議與其他系統互動，可獨立部署為 uber-jar。執行環境需求為 Java 21。

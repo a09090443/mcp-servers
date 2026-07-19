@@ -24,17 +24,17 @@
 ## 技術需求
 
 ### 開發環境
-- **語言**: Kotlin 2.0.21
+- **語言**: Kotlin 2.4.0
 - **JDK 版本**: 21
 - **構建工具**: Gradle
-- **框架**: Quarkus 3.21.0
+- **框架**: Quarkus 3.37.3
 
 ### 依賴庫
 - Quarkus Kotlin
-- MCP Server STDIO v1.1.1
-- Google Maps Services v2.2.0
-- Google API Client v2.2.0
-- Google HTTP Client v1.46.3
+- MCP Server STDIO v1.13.1
+- Google Maps Places v0.65.0
+- Google API Client v2.9.0
+- Google HTTP Client v1.47.1
 
 ## 設置與配置
 

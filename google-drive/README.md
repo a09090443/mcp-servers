@@ -25,18 +25,18 @@
 ## 技術需求
 
 ### 開發環境
-- **語言**: Kotlin 2.0.21
+- **語言**: Kotlin 2.4.0
 - **JDK 版本**: 21
 - **構建工具**: Gradle
-- **框架**: Quarkus 3.21.0
+- **框架**: Quarkus 3.37.3
 
 ### 依賴庫
 - Quarkus Kotlin
-- MCP Server STDIO v1.0.0.CR1
-- Google API Client v2.7.2
+- MCP Server STDIO v1.13.1
+- Google API Client v2.9.0
 - Google OAuth Client Jetty v1.39.0
 - Google API Services Drive v3-rev20250220-2.0.0
-- Apache Commons IO v2.18.0
+- Apache Commons IO v2.22.0
 
 ## 設置與配置
 

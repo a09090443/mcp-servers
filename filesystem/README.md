@@ -103,7 +103,7 @@ aiService.toolProvider(toolProvider)
 日誌文件配置在 application.properties 中：
 
 ```
-quarkus.package.type=uber-jar
+quarkus.package.jar.type=uber-jar
 quarkus.log.file.enable=true
 quarkus.log.file.path=D:/tmp/filesystem.log
 ```

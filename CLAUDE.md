@@ -8,12 +8,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **關鍵：這不是 Gradle multi-module 專案。** 根目錄沒有 `build.gradle.kts` 或 `settings.gradle.kts`，每個模組各自帶著完整的 `settings.gradle.kts`、`gradle.properties` 與 gradle wrapper。任何 Gradle 指令都必須先 `cd` 進模組目錄，在根目錄執行一律失敗。
 
+根目錄唯一的共用建置檔是 `gradle/libs.versions.toml`（version catalog），僅集中版本號，不構成 multi-module 關係——見下方「版本集中管理」。
+
 ## 目錄樹
 
 ```
 mcp-servers/
 ├── .gitignore                    # 根層級 IDE／建置產物忽略規則
 ├── README.md                     # 各模組功能總覽
+├── gradle/
+│   └── libs.versions.toml        # 全 repo 唯一的版本來源（version catalog）
 ├── cwa-tw/                       # 中央氣象署：天氣預報與地震觀測
 │   └── src/main/kotlin/tw/zipe/mcp/cwa/
 │       ├── Weather.kt            # @Tool 進入點
@@ -58,11 +62,56 @@ mcp-servers/
 
 | 項目 | 版本 |
 |---|---|
-| Kotlin | 2.2.0 |
+| Kotlin | 2.4.0 |
 | Java（source/target） | 21 |
-| Quarkus | 3.20.2.1 |
-| `quarkus-mcp-server-stdio` | 1.4.1 |
+| Quarkus | 3.37.3 |
+| `quarkus-mcp-server-stdio` | 1.13.1 |
+| Gradle wrapper | 9.6.1 |
 | 打包 | `uber-jar` |
+
+## 版本集中管理
+
+所有套件版本集中在根目錄的 `gradle/libs.versions.toml`，各模組在自己的 `settings.gradle.kts` 以相對路徑引用：
+
+```kotlin
+dependencyResolutionManagement {
+    versionCatalogs {
+        create("libs") {
+            from(files("../gradle/libs.versions.toml"))
+        }
+    }
+}
+```
+
+`build.gradle.kts` 一律使用 catalog 別名，**不要寫死版本號**：
+
+```kotlin
+plugins {
+    alias(libs.plugins.kotlin.jvm)
+    alias(libs.plugins.kotlin.allopen)
+    alias(libs.plugins.quarkus)
+}
+
+dependencies {
+    implementation(enforcedPlatform(libs.quarkus.bom))
+    implementation(libs.mcp.server.stdio)
+}
+```
+
+各模組的 `gradle.properties` 已不再宣告 `quarkusPlatformVersion`／`quarkusPluginVersion`，僅留註解指向 catalog。
+
+### 改版本時的兩個陷阱
+
+**一、Kotlin 必須對齊 quarkus-bom。** 模組用的是 `enforcedPlatform`（強制覆寫，不是一般 `platform`），BOM 管理的版本會**強制蓋掉**自行宣告的版本。Quarkus 3.37.3 管理 Kotlin 2.4.0，所以 catalog 的 `kotlin` 就設 2.4.0；若設成更新的 2.4.10，會變成新編譯器搭配被降版的 stdlib。
+
+**二、被 BOM 管理的套件不能自行升上去。** 例如 `google-http-client` 已有 2.x，但 quarkus-bom 也管理它，宣告 2.1.1 會被強制降回 1.47.1。catalog 中直接寫實際生效的 1.47.1，避免宣告與解析結果不符。
+
+升級後請用以下指令確認宣告值等於實際解析值：
+
+```bash
+./gradlew dependencies --configuration runtimeClasspath | grep '套件名'
+# 出現 "2.1.1 -> 1.47.1" 這種箭頭，代表宣告被 BOM 覆寫了
+```
 
 ## 常用指令
 

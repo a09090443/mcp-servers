@@ -24,10 +24,10 @@
 - **完善的錯誤處理**：提供詳細錯誤信息和操作上下文
 
 ## 技術需求與依賴
-- **語言**：Kotlin (版本 2.0.21)
+- **語言**：Kotlin (版本 2.4.0)
 - **JDK 版本**：21
 - **構建工具**：Gradle
-- **框架**：Quarkus 3.21.0
+- **框架**：Quarkus 3.37.3
 - **主要依賴庫**：Google API Client、Gmail API、Jakarta Mail、MCP Server STDIO
 
 ## 環境設置
