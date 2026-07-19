@@ -37,26 +37,26 @@
 使用 Gradle 構建並運行服務：
 
 ```
-./gradlew build
-java -jar build/quarkus-app/quarkus-run.jar /path/to/allowed/directory,/another/allowed/path
+./gradlew :filesystem:build
+java -jar filesystem/build/filesystem-1.0-SNAPSHOT-runner.jar /path/to/allowed/directory,/another/allowed/path
 ```
 
 構建 uber-jar：
 
 ```
-./gradlew build -Dquarkus.package.jar.type=uber-jar
+./gradlew :filesystem:build -Dquarkus.package.jar.type=uber-jar
 ```
 
 開發模式運行：
 
 ```
-./gradlew quarkusDev /path/to/allowed/directory
+./gradlew :filesystem:quarkusDev /path/to/allowed/directory
 ```
 
 ### 啟動參數說明
 - 服務啟動時必須提供一個或多個允許操作的路徑，例如：
 ```
-java -jar build/quarkus-app/quarkus-run.jar C:/path/to/allowed/directory /another/allowed/path
+java -jar filesystem/build/filesystem-1.0-SNAPSHOT-runner.jar C:/path/to/allowed/directory /another/allowed/path
 ```
 - 這些路徑將被設置為系統屬性 `fileserver.paths`
 - 服務只能在這些指定路徑及其子目錄下操作文件

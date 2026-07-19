@@ -55,8 +55,8 @@
 使用 Gradle 構建並運行服務:
 
 ```bash
-./gradlew build
-java -jar build/quarkus-app/quarkus-run.jar
+./gradlew :google-drive:build
+java -jar google-drive/build/google-drive-1.0-SNAPSHOT-runner.jar
 ```
 
 使用 JBang 運行服務:
@@ -68,7 +68,7 @@ jbang --quiet google-drive-1.0-SNAPSHOT-runner.jar
 開發模式:
 
 ```bash
-./gradlew quarkusDev
+./gradlew :google-drive:quarkusDev
 ```
 
 ### MCP 配置文件設置

@@ -26,7 +26,7 @@ class FileSystemApplication : QuarkusApplication {
 **啟動方式因此與其他模組不同**，必須傳入允許存取的路徑清單：
 
 ```bash
-java -jar build/filesystem-1.0-SNAPSHOT-runner.jar D:/allowed/path1 D:/allowed/path2
+java -jar filesystem/build/filesystem-1.0-SNAPSHOT-runner.jar D:/allowed/path1 D:/allowed/path2
 ```
 
 不給參數會以 exit code 1 終止，這是刻意的安全設計——沒有明確授權路徑就不啟動。

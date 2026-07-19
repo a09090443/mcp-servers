@@ -51,20 +51,20 @@
 使用 Gradle 構建並運行服務：
 
 ```bash
-./gradlew build
-java -jar build/quarkus-app/quarkus-run.jar
+./gradlew :excel:build
+java -jar excel/build/excel-1.0-SNAPSHOT-runner.jar
 ```
 
 構建 über-jar：
 
 ```bash
-./gradlew build -Dquarkus.package.jar.type=uber-jar
+./gradlew :excel:build -Dquarkus.package.jar.type=uber-jar
 ```
 
 開發模式運行：
 
 ```bash
-./gradlew quarkusDev
+./gradlew :excel:quarkusDev
 ```
 
 ### MCP 配置文件設定

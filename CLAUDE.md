@@ -4,11 +4,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 專案性質
 
-這個 repo 收納 8 個**彼此獨立**的 MCP（Model Context Protocol）Server。
+這個 repo 收納 8 個 MCP（Model Context Protocol）Server，以 **Gradle multi-module** 組織：根目錄的 `settings.gradle.kts` 用 `include` 掛載八個子專案，共用單一 gradle wrapper 與單一 version catalog。
 
-**關鍵：這不是 Gradle multi-module 專案。** 根目錄沒有 `build.gradle.kts` 或 `settings.gradle.kts`，每個模組各自帶著完整的 `settings.gradle.kts`、`gradle.properties` 與 gradle wrapper。任何 Gradle 指令都必須先 `cd` 進模組目錄，在根目錄執行一律失敗。
+**Gradle 指令一律在根目錄執行**，以 `:模組名:任務` 指定對象（例如 `./gradlew :tw-stock:build`）。子模組底下已經沒有 `gradlew`、`settings.gradle.kts` 或 `gradle.properties`，`cd` 進模組目錄是跑不動的。
 
-根目錄唯一的共用建置檔是 `gradle/libs.versions.toml`（version catalog），僅集中版本號，不構成 multi-module 關係——見下方「版本集中管理」。
+各模組在**執行期**仍彼此獨立：沒有任何跨模組的 `project(":...")` 相依，每個都各自打包成可獨立部署的 uber-jar。共用的只有建置設定與套件版本。
 
 ## 目錄樹
 
@@ -16,8 +16,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 mcp-servers/
 ├── .gitignore                    # 根層級 IDE／建置產物忽略規則
 ├── README.md                     # 各模組功能總覽
+├── settings.gradle.kts           # include 八個子模組（全 repo 唯一）
+├── gradlew / gradlew.bat         # 唯一的 gradle wrapper
 ├── gradle/
-│   └── libs.versions.toml        # 全 repo 唯一的版本來源（version catalog）
+│   ├── libs.versions.toml        # 全 repo 唯一的版本來源（version catalog）
+│   └── wrapper/
 ├── cwa-tw/                       # 中央氣象署：天氣預報與地震觀測
 │   └── src/main/kotlin/tw/zipe/mcp/cwa/
 │       ├── Weather.kt            # @Tool 進入點
@@ -71,19 +74,9 @@ mcp-servers/
 
 ## 版本集中管理
 
-所有套件版本集中在根目錄的 `gradle/libs.versions.toml`，各模組在自己的 `settings.gradle.kts` 以相對路徑引用：
+所有套件版本集中在根目錄的 `gradle/libs.versions.toml`。這是 Gradle 的預設路徑，**會自動註冊為所有子模組都能用的 `libs`**，不需要任何引用設定。
 
-```kotlin
-dependencyResolutionManagement {
-    versionCatalogs {
-        create("libs") {
-            from(files("../gradle/libs.versions.toml"))
-        }
-    }
-}
-```
-
-`build.gradle.kts` 一律使用 catalog 別名，**不要寫死版本號**：
+子模組的 `build.gradle.kts` 一律使用 catalog 別名，**不要寫死版本號**：
 
 ```kotlin
 plugins {
@@ -98,7 +91,7 @@ dependencies {
 }
 ```
 
-各模組的 `gradle.properties` 已不再宣告 `quarkusPlatformVersion`／`quarkusPluginVersion`，僅留註解指向 catalog。
+新增模組時要做三件事：在根 `settings.gradle.kts` 的 `include` 加入模組名、建立該模組的 `build.gradle.kts`（照抄現有模組的樣板）、需要的新套件加進 catalog。**不要**在模組底下放 `settings.gradle.kts`、`gradle.properties` 或 gradle wrapper。
 
 ### 改版本時的兩個陷阱
 
@@ -115,29 +108,37 @@ dependencies {
 
 ## 常用指令
 
-一律先進入模組目錄：
+一律在**根目錄**執行，用 `:模組名:任務` 指定對象：
 
 ```bash
-cd tw-stock            # 或其他模組
+./gradlew :tw-stock:build        # 建置單一模組（產出 tw-stock/build/*-runner.jar）
+./gradlew :tw-stock:quarkusDev   # 開發模式（live coding）
+./gradlew :tw-stock:test         # 執行單一模組的測試
 
-./gradlew build        # 建置（產出 build/*-runner.jar，uber-jar）
-./gradlew quarkusDev   # 開發模式（live coding）
-./gradlew test         # 執行測試
+./gradlew build                  # 建置全部八個模組
+./gradlew projects               # 列出已掛載的模組
 
 # 執行單一測試類別
-./gradlew test --tests "tw.zipe.mcp.twse.tool.TWStockToolTest"
+./gradlew :tw-stock:test --tests "tw.zipe.mcp.twse.tool.TWStockToolTest"
 
 # 執行單一測試方法
-./gradlew test --tests "tw.zipe.mcp.twse.tool.TWStockToolTest.testGetCompanyBasicInfo"
+./gradlew :tw-stock:test --tests "tw.zipe.mcp.twse.tool.TWStockToolTest.testGetCompanyBasicInfo"
 
 # 建置 native executable（需 GraalVM，或用容器）
-./gradlew build -Dquarkus.native.enabled=true -Dquarkus.native.container-build=true
+./gradlew :tw-stock:build -Dquarkus.native.enabled=true -Dquarkus.native.container-build=true
+```
+
+跑全專案的 `./gradlew build` 時，`cwa-tw`、`gmail`、`google-drive`、`google-map` 的測試會因缺少憑證而失敗。要驗證全部模組是否編譯得過，用 `./gradlew build -x test`，再單獨跑可離線／免憑證的四個：
+
+```bash
+./gradlew build -x test
+./gradlew :date:test :excel:test :filesystem:test :tw-stock:test
 ```
 
 執行打包後的 server：
 
 ```bash
-java -jar build/tw-stock-1.0-SNAPSHOT-runner.jar
+java -jar tw-stock/build/tw-stock-1.0-SNAPSHOT-runner.jar
 ```
 
 此 repo 沒有設定 linter 或 formatter，也沒有 CI 設定檔。

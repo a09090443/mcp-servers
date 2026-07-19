@@ -34,20 +34,20 @@
 使用 Gradle 構建並運行服務：
 
 ```
-./gradlew build
-java -jar build/quarkus-app/quarkus-run.jar
+./gradlew :date:build
+java -jar date/build/date-1.0-SNAPSHOT-runner.jar
 ```
 
 構建 uber-jar：
 
 ```
-./gradlew build -Dquarkus.package.jar.type=uber-jar
+./gradlew :date:build -Dquarkus.package.jar.type=uber-jar
 ```
 
 開發模式運行：
 
 ```
-./gradlew quarkusDev
+./gradlew :date:quarkusDev
 ```
 
 ### MCP 配置文件設定

@@ -54,14 +54,14 @@
 使用 Gradle 構建並運行服務:
 
 ```bash
-./gradlew build
-java -jar build/quarkus-app/quarkus-run.jar
+./gradlew :google-map:build
+java -jar google-map/build/google-map-1.0-SNAPSHOT-runner.jar
 ```
 
 開發模式:
 
 ```bash
-./gradlew quarkusDev
+./gradlew :google-map:quarkusDev
 ```
 
 ### MCP 配置文件設置

@@ -39,8 +39,8 @@
 ## 建置與執行
 - 使用 Gradle 建置並執行服務：
   ```shell script
-  ./gradlew build
-  java -jar build/quarkus-app/quarkus-run.jar
+  ./gradlew :gmail:build
+  java -jar gmail/build/gmail-1.0-SNAPSHOT-runner.jar
   ```
 - 使用 JBang 運行：
   ```shell script
@@ -48,7 +48,7 @@
   ```
 - 開發模式啟動：
   ```shell script
-  ./gradlew quarkusDev
+  ./gradlew :gmail:quarkusDev
   ```
 
 ## MCP 服務配置範例

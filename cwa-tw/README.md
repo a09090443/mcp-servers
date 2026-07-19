@@ -44,14 +44,14 @@
 使用 Gradle 構建並運行服務:
 
 ```bash
-./gradlew build
-java -jar build/quarkus-app/quarkus-run.jar
+./gradlew :cwa-tw:build
+java -jar cwa-tw/build/cwa-tw-1.0-SNAPSHOT-runner.jar
 ```
 
 開發模式:
 
 ```bash
-./gradlew quarkusDev
+./gradlew :cwa-tw:quarkusDev
 ```
 
 ### MCP 配置文件設置
