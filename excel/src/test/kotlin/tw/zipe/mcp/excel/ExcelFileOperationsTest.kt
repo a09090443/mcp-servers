@@ -33,7 +33,7 @@ class ExcelFileOperationsTest {
         testFilePath = tempDir.resolve("test.xlsx").toString()
         testCsvPath = tempDir.resolve("test.csv").toString()
 
-        // 创建测试Excel文件
+        // 建立測試 Excel 檔案
         val workbook = XSSFWorkbook()
         workbook.createSheet("TestSheet")
         FileOutputStream(testFilePath).use {
@@ -41,13 +41,13 @@ class ExcelFileOperationsTest {
         }
         workbook.close()
 
-        // 创建测试CSV文件
+        // 建立測試 CSV 檔案
         Files.write(Paths.get(testCsvPath), listOf("A1,B1,C1", "A2,B2,C2", "A3,B3,C3"))
     }
 
     @AfterEach
     fun cleanup() {
-        // 确保临时文件被删除
+        // 確保暫存檔案被刪除
         File(testFilePath).delete()
         File(testCsvPath).delete()
     }
@@ -62,7 +62,7 @@ class ExcelFileOperationsTest {
         assertEquals("Excel file created successfully", result["message"])
         assertTrue(File(newFileName).exists())
 
-        // 验证文件内容
+        // 驗證檔案內容
         XSSFWorkbook(newFileName).use { workbook ->
             assertEquals(1, workbook.numberOfSheets)
             assertEquals("NewSheet", workbook.getSheetName(0))
@@ -77,7 +77,7 @@ class ExcelFileOperationsTest {
         assertTrue(result["success"] as Boolean)
         assertEquals("Worksheet added successfully", result["message"])
 
-        // 验证工作表是否已添加
+        // 驗證工作表是否已新增
         XSSFWorkbook(testFilePath).use { workbook ->
             assertEquals(2, workbook.numberOfSheets)
             assertNotNull(workbook.getSheet("NewSheet"))
@@ -86,7 +86,7 @@ class ExcelFileOperationsTest {
 
     @Test
     fun testAddWorksheetDuplicate() {
-        // 尝试添加已存在的工作表
+        // 嘗試新增已存在的工作表
         val response = excelOps.addWorksheet(testFilePath, "TestSheet")
         val result = gson.fromJson(response, Map::class.java)
 
@@ -96,7 +96,7 @@ class ExcelFileOperationsTest {
 
     @Test
     fun testDeleteWorksheet() {
-        // 先添加一个新工作表，然后删除它
+        // 先新增一個新工作表，然後刪除它
         excelOps.addWorksheet(testFilePath, "ToDelete")
 
         val response = excelOps.deleteWorksheet(testFilePath, "ToDelete")
@@ -105,7 +105,7 @@ class ExcelFileOperationsTest {
         assertTrue(result["success"] as Boolean)
         assertEquals("Worksheet deleted successfully", result["message"])
 
-        // 验证工作表是否已删除
+        // 驗證工作表是否已刪除
         XSSFWorkbook(testFilePath).use { workbook ->
             assertEquals(1, workbook.numberOfSheets)
             assertNull(workbook.getSheet("ToDelete"))
@@ -114,7 +114,7 @@ class ExcelFileOperationsTest {
 
     @Test
     fun testDeleteOnlyWorksheet() {
-        // 尝试删除唯一的工作表
+        // 嘗試刪除唯一的工作表
         val response = excelOps.deleteWorksheet(testFilePath, "TestSheet")
         val result = gson.fromJson(response, Map::class.java)
 
@@ -130,7 +130,7 @@ class ExcelFileOperationsTest {
         assertTrue(result["success"] as Boolean)
         assertEquals("Worksheet renamed successfully", result["message"])
 
-        // 验证工作表是否已重命名
+        // 驗證工作表是否已重新命名
         XSSFWorkbook(testFilePath).use { workbook ->
             assertNotNull(workbook.getSheet("RenamedSheet"))
             assertNull(workbook.getSheet("TestSheet"))
@@ -139,14 +139,14 @@ class ExcelFileOperationsTest {
 
     @Test
     fun testWriteAndReadCellData() {
-        // 写入单元格数据
+        // 寫入儲存格資料
         val writeResponse = excelOps.writeCellData(testFilePath, "TestSheet", 1, 2, "TestData")
         val writeResult = gson.fromJson(writeResponse, Map::class.java)
 
         assertTrue(writeResult["success"] as Boolean)
         assertEquals("Cell data written successfully", writeResult["message"])
 
-        // 读取并验证单元格数据
+        // 讀取並驗證儲存格資料
         val readResponse = excelOps.readCellData(testFilePath, "TestSheet", 1, 2)
         val readResult = gson.fromJson(readResponse, Map::class.java)
 
@@ -157,16 +157,16 @@ class ExcelFileOperationsTest {
 
     @Test
     fun testWriteAndReadRowData() {
-        // 写入行数据
+        // 寫入列資料
         val rowData = "A,B,C,D,E"
         val writeResponse = excelOps.writeRowData(testFilePath, "TestSheet", 3, rowData)
         val writeResult = gson.fromJson(writeResponse, Map::class.java)
 
         assertTrue(writeResult["success"] as Boolean)
         assertEquals("Row data written successfully", writeResult["message"])
-        assertEquals(5, (writeResult["columnCount"] as Double).toInt())  // 将Double转为Int后比较
+        assertEquals(5, (writeResult["columnCount"] as Double).toInt())  // 將 Double 轉為 Int 後比較
 
-        // 读取并验证行数据
+        // 讀取並驗證列資料
         val readResponse = excelOps.readRowData(testFilePath, "TestSheet", 3)
         val readResult = gson.fromJson(readResponse, Map::class.java)
 
@@ -179,7 +179,7 @@ class ExcelFileOperationsTest {
 
     @Test
     fun testListWorksheets() {
-        // 先添加一些工作表
+        // 先新增一些工作表
         excelOps.addWorksheet(testFilePath, "Sheet2")
         excelOps.addWorksheet(testFilePath, "Sheet3")
 
@@ -201,9 +201,9 @@ class ExcelFileOperationsTest {
 
         assertTrue(result["success"] as Boolean)
         assertEquals("CSV data imported successfully", result["message"])
-        assertEquals(3, (result["rowCount"] as Double).toInt())  // 将Double转为Int后比较
+        assertEquals(3, (result["rowCount"] as Double).toInt())  // 將 Double 轉為 Int 後比較
 
-        // 验证导入的数据
+        // 驗證匯入的資料
         XSSFWorkbook(testFilePath).use { workbook ->
             val sheet = workbook.getSheet("CSVSheet")
             assertNotNull(sheet)
@@ -216,7 +216,7 @@ class ExcelFileOperationsTest {
 
     @Test
     fun testExportToCSV() {
-        // 先写入一些数据
+        // 先寫入一些資料
         excelOps.writeRowData(testFilePath, "TestSheet", 0, "X1,Y1,Z1")
         excelOps.writeRowData(testFilePath, "TestSheet", 1, "X2,Y2,Z2")
 
@@ -227,7 +227,7 @@ class ExcelFileOperationsTest {
         assertTrue(result["success"] as Boolean)
         assertEquals("Worksheet exported successfully", result["message"])
 
-        // 验证导出的CSV文件
+        // 驗證匯出的 CSV 檔案
         val csvLines = Files.readAllLines(Paths.get(exportPath))
         assertEquals(2, csvLines.size)
         assertEquals("X1,Y1,Z1", csvLines[0])
@@ -236,7 +236,7 @@ class ExcelFileOperationsTest {
 
     @Test
     fun testMergeCells() {
-        // 先写入一些数据
+        // 先寫入一些資料
         excelOps.writeCellData(testFilePath, "TestSheet", 1, 1, "Merged Cell")
 
         val response = excelOps.mergeCells(testFilePath, "TestSheet", 1, 2, 1, 3)
@@ -245,7 +245,7 @@ class ExcelFileOperationsTest {
         assertTrue(result["success"] as Boolean)
         assertEquals("Cells merged successfully", result["message"])
 
-        // 验证单元格合并
+        // 驗證儲存格合併
         XSSFWorkbook(testFilePath).use { workbook ->
             val sheet = workbook.getSheet("TestSheet")
             assertEquals(1, sheet.numMergedRegions)

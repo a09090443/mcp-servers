@@ -119,7 +119,7 @@ class Weather {
     ): Pair<String, String> {
         return when {
             timeFrom == null && timeTo == null -> {
-                // 使用默认值
+                // 使用預設值
                 Pair(defaultStartTime.format(formatter), defaultEndTime.format(formatter))
             }
 
