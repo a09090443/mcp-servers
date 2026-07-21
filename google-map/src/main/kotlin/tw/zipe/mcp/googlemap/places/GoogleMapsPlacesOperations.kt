@@ -97,8 +97,8 @@ class GoogleMapsPlacesOperations {
     // ======= 回應處理工具方法 =======
     private fun Any.toSuccessResponse(): String =
         when (this) {
-            is String -> this.toByteArray(Charsets.UTF_8).toString(Charsets.UTF_8)
-            else -> gson.toJson(this).toByteArray(Charsets.UTF_8).toString(Charsets.UTF_8)
+            is String -> this
+            else -> gson.toJson(this)
         }
 
     private fun String.toErrorResponse(data: Map<String, Any?> = emptyMap()): String {
@@ -109,7 +109,7 @@ class GoogleMapsPlacesOperations {
         if (data.isNotEmpty()) {
             errorMap["data"] = data
         }
-        return gson.toJson(errorMap).toByteArray(Charsets.UTF_8).toString(Charsets.UTF_8)
+        return gson.toJson(errorMap)
     }
 
     private inline fun <T> executeWithErrorHandling(
@@ -213,10 +213,9 @@ class GoogleMapsPlacesOperations {
                 "fields" to fields
             )
         ) {
+            // 建立帶欄位掩碼的臨時客戶端
+            val clientToUse = createPlacesClientWithFieldMask(fields)
             try {
-                // 建立帶欄位掩碼的臨時客戶端
-                val clientToUse = createPlacesClientWithFieldMask(fields)
-
                 // 構建搜尋請求
                 val requestBuilder = SearchTextRequest.newBuilder()
                     .setTextQuery(query)
@@ -268,9 +267,6 @@ class GoogleMapsPlacesOperations {
                 // 執行搜尋
                 val response = clientToUse.searchText(requestBuilder.build())
 
-                // 關閉臨時客戶端
-                clientToUse.close()
-
                 // 處理結果
                 val results = response.placesList.map { place ->
                     mapOf(
@@ -296,6 +292,9 @@ class GoogleMapsPlacesOperations {
             } catch (e: Exception) {
                 Log.error("以文字搜尋地點時發生錯誤", e)
                 throw e
+            } finally {
+                // 關閉臨時客戶端（例外時也保證釋放）
+                clientToUse.close()
             }
         }
     }
@@ -322,10 +321,9 @@ class GoogleMapsPlacesOperations {
                 "fields" to fields
             )
         ) {
+            // 建立帶欄位掩碼的臨時客戶端
+            val clientToUse = createPlacesClientWithFieldMask(fields)
             try {
-                // 建立帶欄位掩碼的臨時客戶端
-                val clientToUse = createPlacesClientWithFieldMask(fields)
-
                 // 構建搜尋請求
                 val requestBuilder = SearchNearbyRequest.newBuilder()
                     .setLanguageCode(language)
@@ -362,9 +360,6 @@ class GoogleMapsPlacesOperations {
                 // 執行搜尋
                 val response = clientToUse.searchNearby(requestBuilder.build())
 
-                // 關閉臨時客戶端
-                clientToUse.close()
-
                 // 處理結果
                 val results = response.placesList.map { place ->
                     mapOf(
@@ -388,6 +383,9 @@ class GoogleMapsPlacesOperations {
             } catch (e: Exception) {
                 Log.error("搜尋附近地點時發生錯誤", e)
                 throw e
+            } finally {
+                // 關閉臨時客戶端（例外時也保證釋放）
+                clientToUse.close()
             }
         }
     }
@@ -480,11 +478,10 @@ class GoogleMapsPlacesOperations {
             val placeName = "places/$placeId"
 
             val fields =
-                "id,nationalPhoneNumber,internationalPhoneNumber,formattedAddress,location,googleMapsUri,regularOpeningHours,regularOpeningHours,userRatingCount,displayName,reviews,photos,googleMapsLinks"
+                "id,nationalPhoneNumber,internationalPhoneNumber,formattedAddress,location,googleMapsUri,regularOpeningHours,userRatingCount,displayName,reviews,photos,googleMapsLinks"
+            // 建立帶欄位掩碼的臨時客戶端
+            val tempClient = createPlacesClientWithFieldMask(fields, true)
             try {
-                // 建立帶欄位掩碼的臨時客戶端
-                val tempClient = createPlacesClientWithFieldMask(fields, true)
-
                 // 構建請求
                 val requestBuilder = GetPlaceRequest.newBuilder()
                     .setName(placeName)
@@ -500,8 +497,6 @@ class GoogleMapsPlacesOperations {
                 // 調用 Places API 客戶端的 getPlace 方法
                 val response: Place = tempClient.getPlace(request)
 
-                // 關閉臨時客戶端
-                tempClient.close()
                 val json = gson.toJson(response)
                 val resultMap = gson.fromJson<Map<String, Any?>>(
                     json,
@@ -526,6 +521,9 @@ class GoogleMapsPlacesOperations {
             } catch (e: Exception) {
                 Log.error("獲取地點詳情失敗", e)
                 throw e
+            } finally {
+                // 關閉臨時客戶端（例外時也保證釋放）
+                tempClient.close()
             }
         }
     }

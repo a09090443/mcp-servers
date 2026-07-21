@@ -29,6 +29,12 @@ private fun createPlacesClientWithFieldMask(fields: String?, forPlaceDetails: Bo
 
 **新增工具時務必經由這個函式取得 client。** 直接使用注入的 `placesClient` 會因缺少 field mask 而失敗。
 
+臨時 client 用 try/finally 包住呼叫,例外時也保證 `close()`(否則洩漏 gRPC channel);常駐 `placesClient` 由 `@PreDestroy cleanup()` 關閉。
+
+## maxResultCount 是目前唯一可用的筆數欄位
+
+`searchPlaces` / `getNearbyPlaces` 用 `SearchTextRequest.setMaxResultCount()`。Google 官方已於 2024-05 將 Text Search 的 `maxResultCount` 標為 deprecated、建議改 `pageSize`,**但 `google-maps-places` 0.65.0(現行最新版)的 proto 尚未提供 `pageSize`/`pageToken`**(已用 `javap` 確認 `SearchTextRequest$Builder` 只有 `maxResultCount`)。因此維持 `maxResultCount` 是正確的,不要因為 deprecation 警告改寫;等函式庫補上 `pageSize` 再議。
+
 ## 前綴規則不一致
 
 欄位前綴的處理有個分支，集中在 `addPlacesPrefix()`：
