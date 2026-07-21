@@ -1,0 +1,6 @@
+# 允許所有爬蟲（含 AI 索引）抓取全站
+User-agent: *
+Allow: /
+
+# Sitemap 位置
+Sitemap: https://a09090443.github.io/mcp-servers/sitemap.xml

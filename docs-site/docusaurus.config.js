@@ -24,6 +24,28 @@ const config = {
     locales: ['zh-Hant'],
   },
 
+  plugins: [
+    [
+      'docusaurus-plugin-llms',
+      /** @type {import('docusaurus-plugin-llms').PluginOptions} */
+      ({
+        generateLLMsTxt: true,
+        generateLLMsFullTxt: true,
+        // 本站 routeBasePath 為 '/'，需以物件形式明確指定，否則 plugin 會硬套 'docs' 前綴
+        docsDir: [{ path: 'docs', routeBasePath: '/', label: 'MCP Servers' }],
+        title: 'MCP Servers',
+        description: '八個以 Kotlin + Quarkus 打造的 Model Context Protocol 服務',
+        includeOrder: [
+          'index.md',
+          'getting-started.md',
+          'architecture.md',
+          'development.md',
+          'modules/**',
+        ],
+      }),
+    ],
+  ],
+
   presets: [
     [
       'classic',
