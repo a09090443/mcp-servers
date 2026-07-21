@@ -2,6 +2,8 @@
 
 這個項目包含多個 MCP（Model Context Protocol）服務器，每個服務器提供不同的功能模組。
 
+📖 **完整文件站台：<https://a09090443.github.io/mcp-servers/>**
+
 ## 目錄功能簡述
 
 ### `date`
