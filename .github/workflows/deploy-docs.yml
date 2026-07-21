@@ -1,0 +1,67 @@
+name: 部署文件站台到 GitHub Pages
+
+# 只要 docs-site 內容變動就重新部署；也可手動觸發
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - 'docs-site/**'
+      - '.github/workflows/deploy-docs.yml'
+  workflow_dispatch:
+
+# 授予 GITHUB_TOKEN 部署 Pages 所需的權限
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# 同時間只允許一個部署，取消進行中的舊部署
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+defaults:
+  run:
+    working-directory: docs-site
+
+jobs:
+  build:
+    name: 建置 Docusaurus
+    runs-on: ubuntu-latest
+    steps:
+      - name: 取出原始碼
+        uses: actions/checkout@v4
+
+      - name: 設定 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: docs-site/package-lock.json
+
+      - name: 安裝相依套件
+        run: npm ci
+
+      - name: 建置站台
+        run: npm run build
+
+      - name: 設定 Pages
+        uses: actions/configure-pages@v5
+
+      - name: 上傳建置產物
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs-site/build
+
+  deploy:
+    name: 部署到 GitHub Pages
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: 部署
+        id: deployment
+        uses: actions/deploy-pages@v4

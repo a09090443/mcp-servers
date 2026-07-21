@@ -11,10 +11,10 @@ const config = {
     v4: true,
   },
 
-  url: 'https://zipe.github.io',
+  url: 'https://a09090443.github.io',
   baseUrl: '/mcp-servers/',
 
-  organizationName: 'zipe',
+  organizationName: 'a09090443',
   projectName: 'mcp-servers',
 
   onBrokenLinks: 'throw',
