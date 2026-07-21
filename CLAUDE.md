@@ -134,6 +134,18 @@ java -jar tw-stock/build/tw-stock-1.0-SNAPSHOT-runner.jar
 
 此 repo 沒有設定 linter 或 formatter，也沒有 CI 設定檔。
 
+### 慣例強制與漂移掃描
+
+有一支本地腳本會斷言建置與程式碼慣例，收尾前建議跑一次：
+
+```bash
+pwsh scripts/verify-conventions.ps1
+```
+
+它檢查 10 條 DERIVE 自本檔既有慣例的不變量（跨模組相依、build 覆寫 `kotlin{}`/`allOpen{}`、寫死版本號、`println`/`System.out`、金鑰入 `application.properties`、`bin/` 入庫，以及八模組是否齊一套用慣例插件／宣告 `group`／無多餘 wrapper／日誌導向檔案），違規印出 `檔案:行號` 與修復指引並回傳非零 exit code。**目前僅本地執行，尚未接進 CI；改動慣例前後手動跑。** 版本層級的漂移（宣告值 vs BOM 實際解析值）另用上面「改版本時的兩個陷阱」的 `dependencies` 指令核對。
+
+根目錄的 `AGENTS.md` 是給其他 agent 工具（Cursor、Codex 等）的入口別名，內容僅指回本檔；詳規一律以本檔為單一真實來源。
+
 ## 架構要點
 
 ### STDIO transport：stdout 是協議通道
