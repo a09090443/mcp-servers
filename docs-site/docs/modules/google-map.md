@@ -6,7 +6,7 @@ sidebar_label: google-map
 
 # google-map
 
-Google Places API (New) 地點查詢，共 **6 個工具**。
+Google Places API (New) 地點查詢，共 **7 個工具**。
 
 ## 目錄結構
 
@@ -36,6 +36,7 @@ google-map/
 | `getPlaceAutocomplete` | 地點名稱自動完成建議 |
 | `getPlaceDetails` | 依 Place ID 獲取地點詳細資訊 |
 | `getPlacePhoto` | 獲取地點照片 |
+| `getPlacePhotosByPlaceId` | 只給 Place ID 一次取回照片 URL（內部自動解析照片資源名稱） |
 | `getFieldMaskDescription` | 查詢可用的 field mask 欄位說明 |
 
 ## 設定

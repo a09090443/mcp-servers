@@ -5,7 +5,7 @@ paths:
 
 # google-map 模組規則
 
-Google Places API (New) 地點查詢，共 6 個工具。
+Google Places API (New) 地點查詢，共 7 個工具。
 
 ## 檔案結構
 

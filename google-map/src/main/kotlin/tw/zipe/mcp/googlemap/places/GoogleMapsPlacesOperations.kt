@@ -559,6 +559,61 @@ class GoogleMapsPlacesOperations {
     }
 
     /**
+     * 依 Place ID 一次取得照片 URL：先抓該地點的照片資源名稱，再逐一解析為圖片 URL。
+     */
+    @Tool(description = "Get photo URLs for a place directly by its Place ID. Fetches the place's photo references then resolves them to image URLs in a single call.")
+    fun getPlacePhotosByPlaceId(
+        @ToolArg(description = "Google Place ID") placeId: String,
+        @ToolArg(description = "Maximum number of photos to return; each resolved photo is a separate billed request") maxPhotos: Int = 1,
+        @ToolArg(description = "Maximum width of the image") maxWidth: Int = DEFAULT_PHOTO_MAX_WIDTH,
+        @ToolArg(description = "Maximum height of the image") maxHeight: Int = DEFAULT_PHOTO_MAX_HEIGHT
+    ): String {
+        return executeWithErrorHandling(
+            mapOf(
+                "placeId" to placeId,
+                "maxPhotos" to maxPhotos,
+                "maxWidth" to maxWidth,
+                "maxHeight" to maxHeight
+            )
+        ) {
+            // 第一步：以 photos 欄位掩碼取得該地點的照片資源名稱（getPlaceDetails 類，欄位不加前綴）
+            val placeName = "places/$placeId"
+            val client = createPlacesClientWithFieldMask("photos", true)
+            val photoNames: List<String> = try {
+                val request = GetPlaceRequest.newBuilder()
+                    .setName(placeName)
+                    .build()
+                client.getPlace(request).photosList.map { it.name }
+            } finally {
+                // 關閉臨時客戶端（例外時也保證釋放）
+                client.close()
+            }
+
+            // 第二步：逐一解析為圖片 URL（每張為一次計費請求，故受 maxPhotos 限制）
+            val photos = photoNames.take(maxPhotos.coerceAtLeast(0)).mapNotNull { photoName ->
+                val mediaRequest = GetPhotoMediaRequest.newBuilder()
+                    .setName("$photoName/media")
+                    .setMaxWidthPx(maxWidth)
+                    .setMaxHeightPx(maxHeight)
+                    .build()
+                val media: PhotoMedia = placesClient.getPhotoMedia(mediaRequest)
+                if (media.photoUri.isNotEmpty()) {
+                    mapOf("name" to photoName, "photoUri" to media.photoUri)
+                } else {
+                    null
+                }
+            }
+
+            mapOf(
+                "placeId" to placeId,
+                "totalAvailable" to photoNames.size,
+                "returned" to photos.size,
+                "photos" to photos
+            )
+        }
+    }
+
+    /**
      * 獲取 Google Places API 欄位掩碼的詳細描述
      * @return 包含所有欄位名稱及其描述的映射
      */

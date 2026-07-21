@@ -4,7 +4,7 @@
 
 ## 功能列表
 
-共 **6 個工具**：
+共 **7 個工具**：
 
 ### 地點搜尋
 - **文字搜尋地點** (`searchPlaces`)：以關鍵詞搜尋，可依評分、價位等級、地點類型過濾，並可指定搜尋中心座標與半徑
@@ -14,6 +14,7 @@
 ### 地點詳情
 - **獲取地點詳情** (`getPlaceDetails`)：依 Place ID 取得完整資訊（電話、地址、營業時間、評分、評論、照片等）
 - **獲取地點照片** (`getPlacePhoto`)：依照片資源名稱取得照片 URL
+- **依 Place ID 取得照片** (`getPlacePhotosByPlaceId`)：只給 Place ID，一次取回照片 URL（內部自動解析照片資源名稱）
 
 ### 輔助功能
 - **查詢 field mask 欄位說明** (`getFieldMaskDescription`)：列出所有可用欄位及其說明，供呼叫端決定 `fields` 參數
@@ -117,6 +118,7 @@ aiService.toolProvider(toolProvider)
 
 - `getPlaceDetails`：依 Place ID 取得詳細資訊，包含評分、評論、電話、網址、營業時間、照片等
 - `getPlacePhoto`：依照片資源名稱（`places/PLACE_ID/photos/PHOTO_REFERENCE`）取得照片 URL
+- `getPlacePhotosByPlaceId`：只給 Place ID，內部先以 `photos` 欄位掩碼取得照片資源名稱，再解析為圖片 URL 一次回傳；`maxPhotos` 控制張數（預設 1，每張為一次計費請求）
 
 ### 輔助功能
 
