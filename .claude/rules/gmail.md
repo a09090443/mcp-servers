@@ -7,6 +7,13 @@ paths:
 
 Gmail 郵件收發與管理，共 7 個工具。
 
+## 檔案結構
+
+```
+gmail/src/main/kotlin/tw/zipe/mcp/gmail/
+└── GmailOperations.kt
+```
+
 ## 設定
 
 - 環境變數 `GMAIL_CREDENTIALS_FILE_PATH`：OAuth client secret JSON 的路徑

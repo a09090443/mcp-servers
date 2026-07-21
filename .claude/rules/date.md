@@ -7,6 +7,13 @@ paths:
 
 日期與時區處理，共 6 個工具。
 
+## 檔案結構
+
+```
+date/src/main/kotlin/tw/zipe/mcp/date/
+└── DateZoneOperations.kt
+```
+
 ## 特性
 
 **全 repo 唯一無外部依賴、無環境變數的模組**，純 `java.time` 運算。因此：

@@ -7,6 +7,14 @@ paths:
 
 本機檔案系統操作，共 10 個工具。
 
+## 檔案結構
+
+```
+filesystem/src/main/kotlin/tw/zipe/mcp/filesystem/
+├── FileSystemApplication.kt   # @QuarkusMain（僅此模組有）
+└── FileSystemOperations.kt
+```
+
 ## 唯一有 @QuarkusMain 的模組
 
 其他 7 個模組直接依賴 Quarkus 預設啟動流程，只有此模組自訂進入點 `FileSystemApplication`：

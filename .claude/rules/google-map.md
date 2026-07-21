@@ -7,6 +7,14 @@ paths:
 
 Google Places API (New) 地點查詢，共 6 個工具。
 
+## 檔案結構
+
+```
+google-map/src/main/kotlin/tw/zipe/mcp/googlemap/places/
+├── GoogleMapsPlacesOperations.kt
+└── RemoveTrailingUnderscoreNamingStrategy.kt
+```
+
 ## 設定
 
 環境變數 `GOOGLE_MAPS_API_KEY`（常數 `API_KEY_ENV_VAR`），缺少時建構子直接拋 `IllegalArgumentException`。

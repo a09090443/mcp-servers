@@ -7,6 +7,14 @@ paths:
 
 Google Drive 檔案與資料夾管理，共 22 個工具（全 repo 第二多）。
 
+## 檔案結構
+
+```
+google-drive/src/main/kotlin/tw/zipe/mcp/googledrive/
+├── GoogleDriveFileOperations.kt
+└── SSLUtil.kt
+```
+
 ## 設定
 
 - 環境變數 `CREDENTIALS_FILE_PATH`：OAuth client secret JSON 的路徑

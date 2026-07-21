@@ -25,40 +25,18 @@ mcp-servers/
 │   └── src/main/kotlin/
 │       └── mcp-server.conventions.gradle.kts   # 八個模組共用的建置設定
 ├── cwa-tw/                       # 中央氣象署：天氣預報與地震觀測
-│   └── src/main/kotlin/tw/zipe/mcp/cwa/
-│       ├── Weather.kt            # @Tool 進入點
-│       └── WeatherClient.kt      # @RegisterRestClient → opendata.cwa.gov.tw/api
 ├── date/                         # 日期與時區
-│   └── src/main/kotlin/tw/zipe/mcp/date/
-│       └── DateZoneOperations.kt
 ├── excel/                        # Excel 檔案操作（Apache POI）
-│   └── src/main/kotlin/tw/zipe/mcp/excel/
-│       └── ExcelFileOperations.kt
 ├── filesystem/                   # 本機檔案系統
-│   └── src/main/kotlin/tw/zipe/mcp/filesystem/
-│       ├── FileSystemApplication.kt   # @QuarkusMain（僅此模組有）
-│       └── FileSystemOperations.kt
 ├── gmail/                        # Gmail 郵件收發
-│   └── src/main/kotlin/tw/zipe/mcp/gmail/
-│       └── GmailOperations.kt
 ├── google-drive/                 # Google Drive 檔案管理
-│   └── src/main/kotlin/tw/zipe/mcp/googledrive/
-│       ├── GoogleDriveFileOperations.kt
-│       └── SSLUtil.kt
 ├── google-map/                   # Google Places API
-│   └── src/main/kotlin/tw/zipe/mcp/googlemap/places/
-│       ├── GoogleMapsPlacesOperations.kt
-│       └── RemoveTrailingUnderscoreNamingStrategy.kt
 └── tw-stock/                     # 台灣證交所 TWSE 開放資料（規模最大）
-    ├── API.md                    # TWSE 端點對照
-    └── src/main/kotlin/tw/zipe/mcp/twse/
-        ├── TWStockClient.kt      # @RegisterRestClient → openapi.twse.com.tw/v1
-        ├── tool/TWStockTool.kt   # 30 個 @Tool（類別名為 TWStock，與檔名不同）
-        ├── prompt/TWStockPrompt.kt   # 5 個 @Prompt（全 repo 唯一）
-        └── enumerate/IndustryCategory.kt
 ```
 
-每個模組底下另有 `src/main/resources/application.properties`、`src/test/kotlin/...`、`README.md`、`.gitignore`、`.dockerignore`。
+此處只列 repo 根層級結構。**各模組內部的原始碼檔案佈局改列在對應的 `.claude/rules/*.md`**（見下方「各模組規則」表），只有在讀取該模組檔案時才會載入，避免根層級的 CLAUDE.md 過度膨脹。
+
+每個模組底下另有 `src/main/kotlin/...`、`src/main/resources/application.properties`、`src/test/kotlin/...`、`README.md`、`.gitignore`、`.dockerignore`。
 
 **`bin/` 目錄是 Eclipse/VS Code 的編譯輸出**，內含 `src/` 的過期副本，已被 gitignore。絕對不要編輯或引用 `bin/` 底下的檔案——搜尋時若命中它們，請改看 `src/`。
 

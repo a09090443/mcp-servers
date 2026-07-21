@@ -7,6 +7,13 @@ paths:
 
 Apache POI 驅動的 Excel 檔案操作，共 12 個工具。
 
+## 檔案結構
+
+```
+excel/src/main/kotlin/tw/zipe/mcp/excel/
+└── ExcelFileOperations.kt
+```
+
 ## 設定
 
 無環境變數。所有工具接受本機檔案路徑作為參數，直接讀寫檔案系統。

@@ -7,6 +7,14 @@ paths:
 
 中央氣象署（CWA）開放資料：天氣預報與地震觀測。
 
+## 檔案結構
+
+```
+cwa-tw/src/main/kotlin/tw/zipe/mcp/cwa/
+├── Weather.kt            # @Tool 進入點
+└── WeatherClient.kt      # @RegisterRestClient → opendata.cwa.gov.tw/api
+```
+
 ## 設定
 
 - 環境變數 `AUTH_KEY`：CWA opendata 授權碼，缺少時 `Weather` 初始化即失敗
