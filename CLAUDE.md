@@ -194,6 +194,8 @@ allOpen {
 
 要改某個模組時，直接讀該模組的檔案即可觸發對應規則載入；也可以主動開啟對應的 `.claude/rules/*.md` 查閱。新增模組時請一併建立規則檔並更新此表。
 
+另有一支**跨模組**規則 `.claude/rules/docs-sync.md`（範圍 `*/src/**`、`buildSrc/**`、`gradle/libs.versions.toml`、`settings.gradle.kts`）：只要動到任一模組的程式碼或建置設定，收尾前就要對照確認五層文件（根 `README.md`、模組 `README.md`、`CLAUDE.md`、`.claude/rules/*.md`、`docs-site/`）是否需要同步更新，避免程式改了文件卻過期。
+
 ## 測試現況
 
 **repo 內沒有任何單元測試會 mock 外部依賴。** `mockito-core` 雖列在 `tw-stock` 的依賴中，但實際上沒有被使用。跑測試前要分清楚三類：
