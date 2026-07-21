@@ -1,6 +1,15 @@
 ---
+# 新增模組時，把該模組的 <模組>/src/** 加進下方 paths（否則改該模組程式碼不會觸發本規則）。
+# 刻意不用 */src/** 一網打盡，以免命中 docs-site/src（Docusaurus 網站自身原始碼，非模組程式碼）。
 paths:
-  - "*/src/**"
+  - "cwa-tw/src/**"
+  - "date/src/**"
+  - "excel/src/**"
+  - "filesystem/src/**"
+  - "gmail/src/**"
+  - "google-drive/src/**"
+  - "google-map/src/**"
+  - "tw-stock/src/**"
   - "buildSrc/**"
   - "gradle/libs.versions.toml"
   - "settings.gradle.kts"
